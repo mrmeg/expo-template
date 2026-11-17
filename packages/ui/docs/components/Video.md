@@ -23,8 +23,9 @@ import { Video } from "@mrmeg/expo-ui/components/Video";
   among several subtitle tracks or audio tracks, and the one with Picture in
   Picture buttons. `"custom"` draws a center play button and a bottom bar
   (play, scrubber with buffered fill, time, mute, captions, fullscreen) that
-  fades 3 s after the last interaction while playing and returns on hover,
-  focus and tap. On web it answers Space/K (play), ←/→ (±5 s), ↑/↓ (volume),
+  fades 3 s after the last interaction while playing. A tap on the video hides
+  or shows it; hover, focus, a pause and the end bring it back
+  (`onControlsVisibilityChange` reports each change). On web it answers Space/K (play), ←/→ (±5 s), ↑/↓ (volume),
   M, F and Esc while the frame is focused, and only then. `"none"` is bare
   playback: no chrome and no tap handling, for a muted loop or controls of
   your own (pass a `player`).

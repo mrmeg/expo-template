@@ -77,8 +77,11 @@ installs and bundles none of them. `AudioPlayer` also draws artwork with
 `Image`, so it needs `expo-image` as well as `expo-audio`. `expo-audio` adds
 native code: rebuild your dev client after installing it.
 
-`@rn-primitives/*` and `@expo-google-fonts/geist` are package dependencies, not
-peers (`@expo-google-fonts/inter` is not; see [Keep the old look](#keep-the-old-look)). Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
+`@rn-primitives/*` are package dependencies, not peers, and the Allo font files
+ship inside the package (see [Bundled fonts](#bundled-fonts)). No font package
+is a dependency: `@expo-google-fonts/inter` and `@expo-google-fonts/geist` are
+for an app that opts into those presets (see [Keep the old look](#keep-the-old-look)
+and [Sans preset: Geist](#sans-preset-geist)). Animations use React Native `Animated`. `BottomSheet`, `Slider`, and
 `SegmentedControl` render native `@expo/ui` controls (`SegmentedControl` is
 native except `size="lg"`, which the kit draws). i18n is optional.
 
@@ -98,7 +101,8 @@ import { Button, colors, notify, UIProvider, useTheme } from "@mrmeg/expo-ui";
 ```
 
 Importable paths: root, `components`, `components/*`, `constants`,
-`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`. Never import from
+`constants/*`, `hooks`, `hooks/*`, `state`, `state/*`, `lib`,
+`fonts/allo-friendly`, `fonts/allo-round`. Never import from
 `dist/*` or a source checkout path.
 
 The package declares `sideEffects`: only `state/themeStore` does work at import
@@ -555,7 +559,7 @@ style or `undefined` for that layering.
 
 ### Looks and treatments
 
-The built-in values are the Refined look: Geist, neutral greys, 8 / 14 radius,
+The built-in values are the Refined look: Allo, neutral greys, 8 / 14 radius,
 hairline elevation. A look bundles colors, fonts, shape, treatments, and the
 sans/serif presets into one `Look` value; `applyLook(look)` sets them through
 `setColors`, `setFonts`, `setShape`, `setTreatments`, and the preset setters, and
@@ -657,9 +661,9 @@ import { BodyText, CaptionText, HeadingText, StyledText } from "@mrmeg/expo-ui/c
 - `fontWeight`: `light`, `regular`, `medium`, `semibold`, `bold`
 - `italic`: a real italic face where the family has one (an app's `setFonts`
   `italic` map, or the Newsreader serif preset below), otherwise
-  `fontStyle: "italic"` and the platform synthesizes the slant. Geist ships no
-  italic, so `italic` on the sans face is always synthesized (Inter, the classic
-  preset, has a real 400 italic on web only)
+  `fontStyle: "italic"` and the platform synthesizes the slant. The Allo cuts
+  are upright only, so `italic` on the sans face is always synthesized (Inter,
+  the classic preset, has a real 400 italic on web only)
 - `variant`: `sansSerif`, `serif`, `mono`
 - `align`, `text`, `tx`, `txOptions`
 - `selectable`: defaults to `true` on iOS and web and to `false` on Android
@@ -694,34 +698,92 @@ configureExpoUiI18n((key, options) => i18n.t(key, options));
 
 ### Bundled fonts
 
-Geist is the sans face on every platform, in four static weights
-(`Geist_400Regular`, `Geist_500Medium`, `Geist_600SemiBold`, `Geist_700Bold`)
-from the bundled `@expo-google-fonts/geist`. Serif is Georgia by default, or
-Newsreader through the serif preset below; mono is the platform system
-monospace. Inter is an opt-in sans preset (see
-[Sans preset: Inter](#sans-preset-inter)).
+The sans face is [Allo](https://github.com/joshpuckett/allo), one variable font
+with weight, roundness and optical-size axes. The package bundles three cuts of
+it, each its own family with optical size pinned at 14, so every app on the
+package shares one typeface and roundness is the per-app or per-look dial:
 
-`useResources()` loads those four weights on native, so `StyledText`'s
-`light`–`bold` range resolves to real files instead of a faked OS bold. Each
-weight is imported from its own `@expo-google-fonts/geist/<weight>` subpath, so
-a native bundle carries those four files and no other Geist face, and a web
-bundle carries no Geist file at all. Icons
-are SVG drawn from glyph data, so there is no icon font to load on any
-platform. On web
-it injects one Google Fonts Geist stylesheet (all four weights) after hydration
-unless the app already added it; web weight differentiation then comes from a
-numeric `fontWeight` on the shared `"Geist"` family. For better first paint in
-Expo Router web apps, add the links to app-owned `app/+html.tsx`:
+| Cut | Roundness | `SansPreset` | Web family | Native families |
+|---|---|---|---|---|
+| Allo Sharp (default) | 0 | `"allo"` | `"Allo Sharp"` | `AlloSharp_400Regular` … `AlloSharp_700Bold` |
+| Allo Friendly | 50 | `"allo-friendly"` | `"Allo Friendly"` | `AlloFriendly_*` |
+| Allo Round | 100 | `"allo-round"` | `"Allo Round"` | `AlloRound_*` |
+
+Serif is Georgia by default, or Newsreader through the serif preset below; mono
+is the platform system monospace. Inter and Geist are opt-in sans presets the
+app supplies (see [Sans preset: Inter](#sans-preset-inter) and
+[Sans preset: Geist](#sans-preset-geist)). `SansPreset` is
+`"allo" | "allo-friendly" | "allo-round" | "geist" | "inter"`, and
+`sansPresetFamilies[preset]` (from `constants`) holds each one's web stack and
+native names; `defaultSansPreset` is `"allo"`.
+
+`useResources()` registers the four Allo Sharp weights on native (400, 500,
+600, 700; `light` shares the 400 file), so `StyledText`'s `light`–`bold` range
+resolves to real files instead of a faked OS bold. The files ship inside the
+package and are `require`d one by one, so a native bundle carries those four
+and no other cut, and a web bundle carries none. Icons are SVG drawn from glyph
+data, so there is no icon font to load on any platform.
+
+On web each cut is one weight-variable family (400 to 700), split by unicode
+range into a Latin file and an extended file, so an English page downloads only
+the Latin one (the sharp Latin file is 41 KB). Weight comes from a numeric
+`fontWeight` on that family. `useResources()` looks for an element with
+`sansStylesheetIds.allo` (`mrmeg-expo-ui-allo`) and, when there is none,
+injects the package's own published CSS from jsDelivr (`getAlloStylesheetUrl`,
+`font-display: swap`) after hydration. A production web app should self-host:
+copy `allo-sharp-latin.woff2` and `allo-sharp-ext.woff2` from
+`node_modules/@mrmeg/expo-ui/dist/fonts/allo/web/` into `public/fonts/allo/`,
+then in app-owned `app/+html.tsx` preload the Latin file and render the
+`@font-face` rules under the preset's id:
 
 ```tsx
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-<link
-  id="mrmeg-expo-ui-geist"
-  rel="stylesheet"
-  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap"
-/>
+import { getAlloFontFaceCss, sansStylesheetIds } from "@mrmeg/expo-ui/constants";
+
+<link rel="preload" href="/fonts/allo/allo-sharp-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+<style id={sansStylesheetIds.allo}>{getAlloFontFaceCss("allo")}</style>
 ```
+
+`getAlloFontFaceCss(preset?, { baseUrl?, display? })` returns a plain string,
+safe to call while server rendering. `baseUrl` defaults to `"/fonts/allo"` and
+`display` to `"optional"`: with the Latin file preloaded the face renders from
+the first frame and a late arrival never swaps in. `alloWebFonts` names each
+cut's files and `alloUnicodeRanges` holds the two ranges. The template's
+`app/+html.tsx` is the worked example, and its
+`__tests__/webFonts.guardrail.test.ts` pins the copies to the package's.
+
+Three things change against other faces. Text widths differ slightly from
+Geist's, so re-check tight single-line layouts. Allo's contextual alternates
+are on by default in browsers and native text, so a typed `->` renders as an
+arrow. Allo covers Latin scripts, Vietnamese included; Cyrillic, Greek and
+other scripts fall back to the system face.
+
+The package is MIT licensed; the bundled Allo files are under the SIL Open
+Font License 1.1, which ships beside them as `dist/fonts/allo/OFL.txt`.
+
+In this repository, `scripts/build-allo-fonts.py` (Python with `fonttools`)
+cuts `src/fonts/allo/` from the pinned upstream variable font (Allo 1.0.1). The
+outputs are committed; rerun it only for a new upstream release, following the
+steps in its docstring, then copy the sharp web files to `public/fonts/allo/`.
+
+### Sans preset: Allo Friendly and Allo Round
+
+The two softer cuts are opt-in. Their native files are separate entries, so an
+app on the default never bundles them:
+
+```tsx
+import { alloRoundFonts } from "@mrmeg/expo-ui/fonts/allo-round";
+// or: import { alloFriendlyFonts } from "@mrmeg/expo-ui/fonts/allo-friendly";
+
+const { loaded } = useResources({ sans: "allo-round", sansFonts: alloRoundFonts });
+```
+
+A `Look` picks a cut with `sans: "allo-friendly"` (its faces must already be
+loaded on native), and `loadSansPreset(preset, nativeFonts?)` switches at
+runtime. On web the cut's stylesheet loads on demand; to self-host it, copy its
+two files and render `getAlloFontFaceCss("allo-round")` under
+`sansStylesheetIds["allo-round"]`, with `display: "swap"` if the app switches
+to it at runtime. Navigation fonts are module constants and stay on Allo Sharp;
+an app on another cut builds its own from `sansPresetFamilies[preset]`.
 
 ### Sans preset: Inter
 
@@ -746,15 +808,42 @@ const { loaded } = useResources({
 ```
 
 On native the files register first and the theme store's `sansPreset` switches
-to `"inter"` after; without `sansFonts` the hook warns once and keeps Geist. On
+to `"inter"` after; without `sansFonts` the hook warns once and keeps the current sans. On
 web `sans: "inter"` injects a Google Fonts stylesheet (id
 `mrmeg-expo-ui-inter`, four weights plus the 400 italic) unless the document
 already has an element with that id. `loadSansPreset(preset, nativeFonts?)`
 (from `hooks`) switches at runtime, for example before `applyLook(classicLook)`.
 A `setFonts` sansSerif override wins over any preset. `interFamilies` (from
 `constants`) holds the family names, for building navigation fonts. The
-`light`–`bold` weights and `SansPreset` (`"geist" | "inter"`) apply as for
-Geist.
+`light`–`bold` weights apply as for Allo.
+
+### Sans preset: Geist
+
+Geist was the default sans before 0.39.0, and the package no longer depends on
+`@expo-google-fonts/geist`. An app that wants to stay on it adds the package and
+passes its four weights, as for Inter:
+
+```bash
+bun add @expo-google-fonts/geist
+```
+
+```tsx
+import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular";
+import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium";
+import { Geist_600SemiBold } from "@expo-google-fonts/geist/600SemiBold";
+import { Geist_700Bold } from "@expo-google-fonts/geist/700Bold";
+
+const { loaded } = useResources({
+  sans: "geist",
+  sansFonts: { Geist_400Regular, Geist_500Medium, Geist_600SemiBold, Geist_700Bold },
+});
+```
+
+On web it keeps a self-hosted `<style id="mrmeg-expo-ui-geist">` block, or lets
+the hook inject the Google Fonts Geist stylesheet. Allo Sharp still loads
+beside it (its native files, and on web its stylesheet unless the document has
+a `mrmeg-expo-ui-allo` element), and navigation fonts stay on Allo Sharp unless
+the app builds them from `sansPresetFamilies.geist`.
 
 ### Serif preset: Newsreader
 
@@ -854,15 +943,15 @@ keep the package defaults, and within an overridden group any weight you omit
 falls back to that group's `regular` (never to a package face), so Regular +
 Medium is enough. `setFonts({})` clears back to the defaults.
 
-When `sansSerif` is overridden, `useResources` skips downloading the packaged
-Geist faces entirely (native `.ttf`s and the web stylesheet). For the skip to
+When `sansSerif` is overridden, `useResources` skips loading the packaged
+Allo faces entirely (native `.ttf`s and the web stylesheet). For the skip to
 apply, call `setFonts` before the hook mounts (module scope, or ahead of
 rendering the root); a later call still re-skins all text, it just doesn't
 prevent the download.
 
 | `webWeightStrategy` | Use when | Effect |
 |---|---|---|
-| `"numeric"` (default) | You ship **one multi-weight CSS family** (a variable font, or Google Fonts' single `"Geist"` family) | A numeric `fontWeight` selects the `@font-face` variant |
+| `"numeric"` (default) | You ship **one multi-weight CSS family** (a variable font, like the package's own `"Allo Sharp"`) | A numeric `fontWeight` selects the `@font-face` variant |
 | `"family"` | You load **per-weight faces via `expo-font`** | The family name alone carries the weight; the numeric `fontWeight` is suppressed |
 
 `expo-font` registers each weight as its own single-face family on web as well
@@ -1075,7 +1164,7 @@ are named exports only.
 
 | Hook | Returns |
 |------|---------|
-| `useResources(options?)` | `{ loaded, error }` — loads the Geist faces (icons are SVG drawn from glyph data, nothing to load); `{ serif, serifFonts, sans, sansFonts }` opt into the Newsreader and Inter presets |
+| `useResources(options?)` | `{ loaded, error }` — loads the Allo Sharp faces (icons are SVG drawn from glyph data, nothing to load); `{ serif, serifFonts, sans, sansFonts }` opt into the Newsreader serif and the other sans presets |
 | `useTreatment(name)` | The active value of one treatment (`segmentedSelection`, `switchTrack`, `eyebrow`, `focusRing`, `elevation`) |
 | `loadSansPreset(preset, nativeFonts?)` | Loads a sans preset and switches `sansSerif` to it |
 | `useTheme()` | Active theme, scheme helpers, shadow/contrast/alpha helpers |

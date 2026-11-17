@@ -9,7 +9,7 @@ production server, and LLM-facing docs under `docs/`.
 ### Core
 
 - **Universal app** — iOS, Android, and Web from one codebase; TypeScript strict. Versions under Tech Stack.
-- **Design system** — 35+ shadcn-inspired components on `@rn-primitives`: Refined look by default (Geist, neutral greys, teal accent; `classicLook` for the old one), dark/light themes, WCAG contrast helpers.
+- **Design system** — 35+ shadcn-inspired components on `@rn-primitives`: Refined look by default (Allo, neutral greys, teal accent; `classicLook` for the old one), dark/light themes, WCAG contrast helpers.
 - **Routing** — Expo Router typed routes; server-rendered web build (routes render per request on the Bun server).
 - **State** — Zustand for client state, TanStack React Query for server state, persisted via `AsyncStorage` (native) or `localStorage` (web).
 - **i18n** — `i18next` + `expo-localization`, English/Spanish bundles, RTL support, type-safe translation keys.
@@ -319,12 +319,14 @@ Color tokens live in `packages/ui/src/constants/colors.ts`, imported through
 `@mrmeg/expo-ui/constants`. The primitives, theme hooks, resource-loading hook,
 toast store, and UI helpers ship from the workspace package `@mrmeg/expo-ui`.
 
-Fonts: native loads Geist through `useResources()` (from
-`@expo-google-fonts/geist`). Web self-hosts it: `app/+html.tsx` preloads
-`public/fonts/geist/` (copied from the `@fontsource-variable/geist`
-devDependency; a guardrail test fails if they drift) and inlines the
-`@font-face` rules in `<style id="mrmeg-expo-ui-geist">`, the id that makes
-`useResources()` skip injecting its render-blocking Google Fonts stylesheet.
+Fonts: the sans is Allo Sharp, the sharp cut of the Allo variable font that
+`@mrmeg/expo-ui` bundles; native loads its four weights through
+`useResources()`. Web self-hosts it: `app/+html.tsx` preloads
+`public/fonts/allo/allo-sharp-latin.woff2` (the two files there are copied from
+`packages/ui/src/fonts/allo/web/`; a guardrail test fails if they drift) and
+inlines `getAlloFontFaceCss("allo")` in `<style id={sansStylesheetIds.allo}>`
+(`mrmeg-expo-ui-allo`), the id that makes `useResources()` skip injecting the
+package's CDN stylesheet.
 Inter is the opt-in `classicLook` face; its rules sit inline under
 `mrmeg-expo-ui-inter` without a preload.
 

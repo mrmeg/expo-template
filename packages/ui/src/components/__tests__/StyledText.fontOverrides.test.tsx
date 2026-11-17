@@ -50,7 +50,7 @@ describe("StyledText font overrides", () => {
     await render(<StyledText fontWeight="bold">untouched</StyledText>);
 
     const style = flattenTextStyle("untouched");
-    expect(style.fontFamily).toContain("Geist");
+    expect(style.fontFamily).toContain("\"Allo Sharp\"");
     // Package default on web is the numeric strategy.
     expect(style.fontWeight).toBe("700");
   });
@@ -128,12 +128,12 @@ describe("StyledText font overrides", () => {
     );
 
     expect(flattenTextStyle("warm moment").fontFamily).toBe("Cormorant_400Regular");
-    expect(flattenTextStyle("body copy").fontFamily).toContain("Geist");
+    expect(flattenTextStyle("body copy").fontFamily).toContain("\"Allo Sharp\"");
   });
 
   it("falls back within a partial override group, never to the package face", async () => {
     // An app registering only Regular + Medium (the common minimal set) must
-    // get its own Regular for the missing weights — a Geist face leaking in
+    // get its own Regular for the missing weights — an Allo face leaking in
     // for `bold` would silently break the brand.
     useThemeStore.getState().setFonts({
       families: { sansSerif: { regular: "Brand_Regular", medium: "Brand_Medium" } },
@@ -183,7 +183,7 @@ describe("StyledText font overrides", () => {
       </>,
     );
 
-    expect(flattenTextStyle("sans line").fontFamily).toContain("Geist");
+    expect(flattenTextStyle("sans line").fontFamily).toContain("\"Allo Sharp\"");
     expect(flattenTextStyle("serif line").fontFamily).toContain("Georgia");
   });
 
@@ -197,7 +197,7 @@ describe("StyledText font overrides", () => {
     await render(<StyledText fontWeight="bold">restored</StyledText>);
 
     const style = flattenTextStyle("restored");
-    expect(style.fontFamily).toContain("Geist");
+    expect(style.fontFamily).toContain("\"Allo Sharp\"");
     expect(style.fontWeight).toBe("700");
   });
 });

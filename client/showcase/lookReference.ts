@@ -11,6 +11,7 @@
 
 import {
   rawThemeColors,
+  defaultSansPreset,
   resolveFontStyle,
   type FontVariant,
   type ThemeColorTokens,
@@ -103,7 +104,7 @@ export function lookTreatmentRows(look: DemoLook["look"]): TreatmentRow[] {
 
 export interface FontRow {
   variant: FontVariant;
-  /** The first family of the resolved stack, e.g. `Geist` or `Newsreader_400Regular`. */
+  /** The first family of the resolved stack, e.g. `Allo Sharp` or `Newsreader_400Regular`. */
   family: string;
 }
 
@@ -120,7 +121,7 @@ export function lookFontRows(look: DemoLook["look"]): FontRow[] {
     variant,
     family: firstFamily(
       resolveFontStyle(look.fonts ?? {}, variant, "regular", {
-        sansPreset: look.sans ?? "geist",
+        sansPreset: look.sans ?? defaultSansPreset,
         serifPreset: look.serif ?? "georgia",
       }).fontFamily,
     ),

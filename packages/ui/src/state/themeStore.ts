@@ -4,7 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import type { ResolvedContrast, ThemeColors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
-import type { FontOverrides, SansPreset, SerifPreset } from "../constants/fonts";
+import { defaultSansPreset, type FontOverrides, type SansPreset, type SerifPreset } from "../constants/fonts";
 
 const THEME_KEY = "user-theme-preference";
 const CONTRAST_KEY = "user-contrast-preference";
@@ -206,8 +206,8 @@ export type ThemeStore = {
   serifPreset: SerifPreset;
   /**
    * Which sans the `sansSerif` variant resolves to when no `setFonts`
-   * sansSerif override exists: `"geist"` (default) or `"inter"`, set by
-   * `useResources({ sans: "inter", sansFonts })` or by `applyLook` once the
+   * sansSerif override exists: `"allo"` (default) or another preset, set by
+   * `useResources({ sans, sansFonts })` or by `applyLook` once the
    * faces are loaded.
    */
   sansPreset: SansPreset;
@@ -348,10 +348,10 @@ export const useThemeStore = create<ThemeStore>((set) => ({
 
   serifPreset: "georgia",
 
-  sansPreset: "geist",
+  sansPreset: defaultSansPreset,
 
   setSansPreset: (preset) => {
-    set({ sansPreset: preset ?? "geist" });
+    set({ sansPreset: preset ?? defaultSansPreset });
   },
 
   setSerifPreset: (preset) => {

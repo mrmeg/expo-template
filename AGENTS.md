@@ -41,7 +41,7 @@ unless the user asks for a plan.
 | App runtime | Expo SDK 58 (beta), React 19.2, React Native 0.88 (RC) | Expo Router entry, native and web targets |
 | Router | Expo Router 58 | Typed routes, API routes, server output, server rendering, middleware (stable) and data loaders |
 | Language | TypeScript 6 strict | Path alias `@/*` points at repo root |
-| UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components; default Refined look (Geist, neutral greys), `applyLook(classicLook)` for the old one |
+| UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components; default Refined look (Allo, neutral greys), `applyLook(classicLook)` for the old one |
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |
 | Purchases | `@mrmeg/expo-purchases` workspace package | RevenueCat client, entitlement store, paywall gating, pure webhook/ledger helpers; optional peers `react-native-purchases` / `react-native-purchases-ui`, not used by the template app |
 | Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; publishable but not yet on npm (first release pending); reads `packages/ui/src` here and `dist/design-system.json` in consumers |

@@ -382,6 +382,21 @@ describe("Video (web) keyboard", () => {
 });
 
 describe("Video (web) chrome", () => {
+  it("keeps the controls up on a click while the pointer hovers the frame, and hides on a tap without one", async () => {
+    jest.useFakeTimers();
+    await mount();
+    await startPlaying();
+    const surface = screen.getByTestId("video-surface", hidden);
+
+    await act(async () => surface.props.onMouseEnter({}));
+    await fireEvent.press(surface);
+    expect(shown()).toBe(true);
+
+    await act(async () => surface.props.onMouseLeave({}));
+    await fireEvent.press(surface);
+    expect(shown()).toBe(false);
+  });
+
   it("shows on hover and hides 3 s after the pointer leaves", async () => {
     jest.useFakeTimers();
     await mount();

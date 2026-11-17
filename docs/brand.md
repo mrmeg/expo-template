@@ -62,10 +62,15 @@ status.
 
 Two families at most.
 
-- **Sans (everything):** Geist, weights 400/500/600/700, loaded by
-  `useResources()` (four static files on native, one Google Fonts family on
-  web). Inter is the opt-in classic preset (`useResources({ sans: "inter",
-  sansFonts })`, part of `classicLook`). Roles (`StyledText` `semantic`): body
+- **Sans (everything):** Allo, sharp cut by default (Allo Sharp, roundness 0),
+  weights 400/500/600/700, loaded by `useResources()` (four static files
+  bundled in the package on native, one variable family on web, self-hosted in
+  `app/+html.tsx`). Roundness is the dial a fork or a look turns: Allo Friendly
+  (50) and Allo Round (100) are the same typeface, opt-in through a look's
+  `sans` or `useResources({ sans: "allo-round", sansFonts })`. Inter is the
+  opt-in classic preset (`useResources({ sans: "inter", sansFonts })`, part of
+  `classicLook`). Allo covers Latin scripts only, Vietnamese included; others
+  fall back to the system face. Roles (`StyledText` `semantic`): body
   15/24.75, label 14/21 medium, caption 12/18, subheading 18/27 medium, heading
   22/26.4 semibold, title 28/33.6 semibold; eyebrow 13 medium, sentence case,
   untracked, `mutedForeground`. Sizes beyond the roles come from the `size`
