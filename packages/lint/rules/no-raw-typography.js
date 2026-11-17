@@ -96,8 +96,8 @@ function sizeNumbers(typography, name) {
 }
 
 /**
- * The family a stack leads with, normalised for comparison: `"Geist",
- * system-ui, …` and `Geist` are the same face.
+ * The family a stack leads with, normalised for comparison: `"Allo Sharp",
+ * system-ui, …` and `Allo Sharp` are the same face.
  *
  * @param {string} family
  * @returns {string}
@@ -139,7 +139,7 @@ function familyGuidance(literal, families, fontVariants) {
       `\`fontWeight\`) or \`useFontStyle(weight, "${variant}")\`. ${FAMILY_TAIL}`
     );
   }
-  // `Geist_400Regular` serves `light` and `regular`; the heavier slot is the one
+  // `AlloSharp_400Regular` serves `light` and `regular`; the heavier slot is the one
   // a reader means, so it is the example.
   const weight = weights[weights.length - 1];
   const at = weights.map((name) => `\`${name}\``).join(" or ");

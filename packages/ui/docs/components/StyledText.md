@@ -22,7 +22,12 @@ already scope label selectability; ordinary iOS/web text stays selectable.
 
 Prefer semantic aliases over raw `Text`.
 
-The sans face is Geist (Inter is the opt-in `sans: "inter"` preset). `eyebrow`
+The sans face is Allo Sharp. Roundness is a preset: `useResources({ sans:
+"allo-round", sansFonts: alloRoundFonts })` with `alloRoundFonts` from
+`@mrmeg/expo-ui/fonts/allo-round` (or `allo-friendly` / `alloFriendlyFonts`),
+or `sans` on a `Look`. Inter and Geist are opt-in presets too. `eyebrow`
 is 13 medium, sentence case, untracked; the `eyebrow` treatment
 (`useThemeStore.getState().setTreatments({ eyebrow: "uppercase" })`) switches it to 12 semibold uppercase.
-Geist has no italic, so `italic` on the default sans is synthesized.
+The Allo cuts have no italic, so `italic` on the default sans is synthesized.
+Allo's contextual alternates turn a typed `->` into an arrow, and text widths
+differ slightly from Geist's, so re-check tight single-line layouts.

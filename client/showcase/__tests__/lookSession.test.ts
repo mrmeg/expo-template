@@ -91,6 +91,6 @@ describe("claimLook", () => {
     await flush();
 
     expect(accent()).toBe("#0a6aa6");
-    expect(useThemeStore.getState().sansPreset).toBe("geist");
+    expect(useThemeStore.getState().sansPreset).toBe("allo");
   });
 });

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
 
-import type { SansPreset, SerifPreset } from "../constants/fonts";
-import { geistFontMap } from "../lib/geistFonts";
+import { getAlloStylesheetUrl, sansStylesheetIds } from "../constants/alloWebFonts";
+import { defaultSansPreset, type SansPreset, type SerifPreset } from "../constants/fonts";
+import { alloFonts } from "../lib/alloFonts";
 import { loadNativeFonts } from "../lib/loadNativeFonts";
 import { useThemeStore } from "../state/themeStore";
 
@@ -13,22 +14,27 @@ interface LoadResourcesResult {
 
 export interface UseResourcesOptions {
   /**
-   * Which sans to switch the `sansSerif` variant to. Geist (the package
-   * default, bundled) always loads: the native files ship with the package and
-   * the web stylesheet is skipped when `app/+html.tsx` already self-hosts it.
-   * `"inter"` additionally loads Inter (the classic look's face): the
-   * Google Fonts stylesheet on web and, on native, the files passed as
-   * `sansFonts`, then sets the theme store's `sansPreset` so sans text
-   * resolves to Inter. An app `setFonts` sansSerif override skips every sans
-   * face and the preset (the override wins anyway).
+   * Which sans to switch the `sansSerif` variant to. `"allo"` (the package
+   * default: Allo at its sharp roundness, bundled) always loads: the native
+   * files ship with the package and the web stylesheet is skipped when
+   * `app/+html.tsx` already self-hosts it. Any other preset additionally
+   * loads its own faces: its stylesheet on web and, on native, the files
+   * passed as `sansFonts`, then sets the theme store's `sansPreset` so sans
+   * text resolves to it. An app `setFonts` sansSerif override skips every
+   * sans face and the preset (the override wins anyway).
    */
   sans?: SansPreset;
   /**
-   * Native font map for the Inter preset, from the app's own dependency:
-   * `@expo-google-fonts/inter/400Regular` … `700Bold` (the names
-   * `interFamilies.native` expects). The package does not depend on the Inter
-   * font package, so an app that never opts in ships none of it; on web this
-   * is ignored (the stylesheet serves the faces).
+   * Native font map for a sans preset other than the default:
+   * - `"allo-friendly"` / `"allo-round"`: `alloFriendlyFonts` from
+   *   `@mrmeg/expo-ui/fonts/allo-friendly`, `alloRoundFonts` from
+   *   `@mrmeg/expo-ui/fonts/allo-round`;
+   * - `"geist"` / `"inter"`: the app's own `@expo-google-fonts/geist` or
+   *   `@expo-google-fonts/inter` faces, `400Regular` … `700Bold` (the names
+   *   `sansPresetFamilies[preset].native` expects).
+   *
+   * Each map is a separate import, so an app that never opts in ships none of
+   * the files; on web this is ignored (the stylesheet serves the faces).
    */
   sansFonts?: Record<string, number | string> | null;
   /**
@@ -50,28 +56,49 @@ export interface UseResourcesOptions {
   serifFonts?: Record<string, number | string> | null;
 }
 
-// Loading at startup stays: all nine faces the template registers (Geist plus
-// the serif preset) took 19 to 30 ms in release builds on an iPhone 13 Pro and
-// a Pixel 6a, cold start. Embedding them would need a native rebuild per app
-// and per-platform family names, which isn't worth that wait.
-function loadNativeGeistFonts(): Promise<void> {
-  if (Platform.OS === "web" || !geistFontMap) {
+// Loading at startup stays: all nine faces the template registers (the default
+// sans plus the serif preset) took 19 to 30 ms in release builds on an iPhone
+// 13 Pro and a Pixel 6a, cold start (measured with the previous default,
+// Geist; the Allo files are the same size). Embedding them would need a native
+// rebuild per app and per-platform family names, which isn't worth that wait.
+function loadNativeDefaultSansFonts(): Promise<void> {
+  if (Platform.OS === "web") {
     return Promise.resolve();
   }
-  return loadNativeFonts(geistFontMap);
+  return loadNativeFonts(alloFonts);
 }
 
-const GEIST_STYLESHEET_ID = "mrmeg-expo-ui-geist";
-// The four upright weights the native files mirror; Geist ships no italic, so
-// `italic` is synthesized everywhere.
-const GEIST_STYLESHEET_URL =
-  "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap";
+// The stylesheet each sans preset falls back to when the document does not
+// already carry its faces (an element with `sansStylesheetIds[preset]`). The
+// Allo cuts are the package's own published files; they are upright only, as
+// Geist is, so `italic` is synthesized. Inter adds a 400 italic, so `italic`
+// renders a real italic on web at body weight (other weights synthesize).
+const SANS_STYLESHEETS: Record<SansPreset, { href: string; label: string }> = {
+  allo: { href: getAlloStylesheetUrl("allo"), label: "Allo" },
+  "allo-friendly": { href: getAlloStylesheetUrl("allo-friendly"), label: "Allo Friendly" },
+  "allo-round": { href: getAlloStylesheetUrl("allo-round"), label: "Allo Round" },
+  geist: {
+    href: "https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap",
+    label: "Geist",
+  },
+  inter: {
+    href: "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap",
+    label: "Inter",
+  },
+};
 
-const INTER_STYLESHEET_ID = "mrmeg-expo-ui-inter";
-// Four upright weights plus the 400 italic, so `italic` renders a real italic
-// on web at body weight (other weights synthesize).
-const INTER_STYLESHEET_URL =
-  "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap";
+function ensureSansStylesheet(preset: SansPreset): Promise<void> {
+  const { href, label } = SANS_STYLESHEETS[preset];
+  return ensureWebFontStylesheet(sansStylesheetIds[preset], href, label);
+}
+
+// What a preset's native font map holds, for the warning when it is missing.
+const SANS_FONT_SOURCES: Record<Exclude<SansPreset, "allo">, string> = {
+  "allo-friendly": "`alloFriendlyFonts` from @mrmeg/expo-ui/fonts/allo-friendly",
+  "allo-round": "`alloRoundFonts` from @mrmeg/expo-ui/fonts/allo-round",
+  geist: "the @expo-google-fonts/geist faces (400Regular, 500Medium, 600SemiBold, 700Bold)",
+  inter: "the @expo-google-fonts/inter faces (400Regular, 500Medium, 600SemiBold, 700Bold)",
+};
 
 const NEWSREADER_STYLESHEET_ID = "mrmeg-expo-ui-newsreader";
 const NEWSREADER_STYLESHEET_URL =
@@ -97,19 +124,19 @@ function ensureWebFontStylesheet(id: string, href: string, label: string): Promi
   });
 }
 
-let warnedMissingSansFonts = false;
+const warnedMissingSansFonts = new Set<SansPreset>();
 
 /**
  * Load a sans preset and switch the `sansSerif` variant to it.
  *
- * Web: the preset switches at once and the Google Fonts stylesheet loads
- * after it (the stack falls back to the system face until the faces arrive,
- * and a self-hosted `<style id="mrmeg-expo-ui-geist|inter">` in the document
- * counts as already loaded). Native: the files register first and the preset
- * switches after, since a native font name that is not loaded is an error,
- * not a fallback. `"geist"` registers the bundled files; `"inter"` registers
- * `nativeFonts` (the app's `@expo-google-fonts/inter` per-weight map) and,
- * when it is missing, warns once and keeps the current sans.
+ * Web: the preset switches at once and its stylesheet loads after it (the
+ * stack falls back to the system face until the faces arrive, and a
+ * self-hosted `<style id={sansStylesheetIds[preset]}>` in the document counts
+ * as already loaded). Native: the files register first and the preset switches
+ * after, since a native font name that is not loaded is an error, not a
+ * fallback. `"allo"` registers the bundled files; every other preset registers
+ * `nativeFonts` (see `UseResourcesOptions.sansFonts`) and, when it is missing,
+ * warns once and keeps the current sans.
  *
  * `useResources` runs this at startup; call it directly to switch at runtime,
  * e.g. before `applyLook(classicLook)`. A `setFonts` sansSerif override wins
@@ -124,29 +151,24 @@ export async function loadSansPreset(
 
   if (Platform.OS === "web") {
     store.setSansPreset(preset);
-    if (preset === "inter") {
-      await ensureWebFontStylesheet(INTER_STYLESHEET_ID, INTER_STYLESHEET_URL, "Inter");
-    } else {
-      await ensureWebFontStylesheet(GEIST_STYLESHEET_ID, GEIST_STYLESHEET_URL, "Geist");
-    }
+    await ensureSansStylesheet(preset);
     return;
   }
 
-  if (preset === "inter") {
+  if (preset === defaultSansPreset) {
+    await loadNativeDefaultSansFonts();
+  } else {
     if (!nativeFonts) {
-      if (!warnedMissingSansFonts) {
-        warnedMissingSansFonts = true;
+      if (!warnedMissingSansFonts.has(preset)) {
+        warnedMissingSansFonts.add(preset);
         console.warn(
-          "The \"inter\" sans preset needs a font map on native: pass the @expo-google-fonts/inter " +
-            "faces (400Regular, 500Medium, 600SemiBold, 700Bold) as `sansFonts` / the second " +
-            "argument of loadSansPreset. Keeping Geist.",
+          `The "${preset}" sans preset needs a font map on native: pass ${SANS_FONT_SOURCES[preset]} ` +
+            "as `sansFonts` / the second argument of loadSansPreset. Keeping the current sans.",
         );
       }
       return;
     }
     await loadNativeFonts(nativeFonts);
-  } else {
-    await loadNativeGeistFonts();
   }
   useThemeStore.getState().setSansPreset(preset);
 }
@@ -211,11 +233,11 @@ function startResourceLoad(
   async function loadResourcesAndDataAsync() {
     try {
       const fontPromise = Promise.all([
-        sansSerifOverridden ? Promise.resolve() : loadNativeGeistFonts(),
-        sansSerifOverridden
-          ? Promise.resolve()
-          : ensureWebFontStylesheet(GEIST_STYLESHEET_ID, GEIST_STYLESHEET_URL, "Geist"),
-        options.sans === "inter" ? loadSansPreset("inter", options.sansFonts) : Promise.resolve(),
+        sansSerifOverridden ? Promise.resolve() : loadNativeDefaultSansFonts(),
+        sansSerifOverridden ? Promise.resolve() : ensureSansStylesheet(defaultSansPreset),
+        options.sans && options.sans !== defaultSansPreset
+          ? loadSansPreset(options.sans, options.sansFonts)
+          : Promise.resolve(),
         loadSerifPreset(options),
       ]);
 

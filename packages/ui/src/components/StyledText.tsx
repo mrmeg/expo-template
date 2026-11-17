@@ -8,7 +8,7 @@ import { translateText } from "../lib/i18n";
 import { TextColorContext, TextSelectabilityContext, TextStyleContext } from "./StyledText.context";
 
 /**
- * Font size variants for the type scale (Geist sans-serif / Georgia serif)
+ * Font size variants for the type scale (Allo sans-serif / Georgia serif)
  */
 export type FontSize = "xs" | "sm" | "base" | "body" | "lg" | "xl" | "xxl" | "display";
 
@@ -92,7 +92,7 @@ const SEMANTIC_CONFIGS: Record<SemanticVariant, { size: FontSize; weight: FontWe
 
 export type TextProps = RNTextProps & {
   /**
-   * Font variant - serif (Georgia), sans-serif (Geist), or mono (the
+   * Font variant - serif (Georgia), sans-serif (Allo), or mono (the
    * platform's system monospace). Host apps swap the families via `setFonts`.
    */
   variant?: FontVariant;
@@ -151,7 +151,7 @@ export type TextProps = RNTextProps & {
  * - Semantic variants (title, heading, subheading, body, caption, label, eyebrow)
  * - Text alignment prop
  * - Font weight options (light, regular, medium, semibold, bold) — resolves to
- *   real Geist font files on native, and family + numeric fontWeight on web
+ *   real Allo font files on native, and family + numeric fontWeight on web
  * - Per-size letter-spacing scale (tight on large headings, positive on micro
  *   labels); explicit `style` letterSpacing always wins
  * - Text selection on by default on iOS and web, off by default on Android:
@@ -282,7 +282,7 @@ export function SerifText(props: TextProps) {
 
 /**
  * Sans-Serif Text Component
- * Uses the sans-serif font family (Geist)
+ * Uses the sans-serif font family (Allo)
  */
 export function SansSerifText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" />;
@@ -308,7 +308,7 @@ export function SerifBoldText(props: TextProps) {
 
 /**
  * Sans-Serif Bold Text Component
- * Uses the sans-serif font family at semibold weight (Geist 600)
+ * Uses the sans-serif font family at semibold weight (Allo 600)
  */
 export function SansSerifBoldText(props: TextProps) {
   return <StyledText {...props} variant="sansSerif" fontWeight="semibold" />;

@@ -21,7 +21,7 @@ describe("StyledText italic", () => {
   afterEach(() => {
     useThemeStore.getState().setFonts({});
     useThemeStore.getState().setSerifPreset("georgia");
-    useThemeStore.getState().setSansPreset("geist");
+    useThemeStore.getState().setSansPreset("allo");
   });
 
   it("is upright by default", async () => {
@@ -31,7 +31,7 @@ describe("StyledText italic", () => {
 
   it("synthesizes italic on the package faces", async () => {
     await render(<StyledText italic fontWeight="bold">slanted</StyledText>);
-    expect(styleOf("slanted")).toEqual(expect.objectContaining({ fontFamily: "Geist_700Bold", fontStyle: "italic" }));
+    expect(styleOf("slanted")).toEqual(expect.objectContaining({ fontFamily: "AlloSharp_700Bold", fontStyle: "italic" }));
   });
 
   it("uses the app's italic face from setFonts and emits no fontStyle", async () => {
@@ -56,15 +56,15 @@ describe("StyledText italic", () => {
     expect(styleOf("quote")).toEqual(expect.objectContaining({ fontFamily: "Newsreader_400Regular_Italic" }));
     expect(styleOf("quote").fontStyle).toBeUndefined();
     expect(styleOf("heading").fontFamily).toBe("Newsreader_600SemiBold");
-    expect(styleOf("body").fontFamily).toBe("Geist_400Regular");
+    expect(styleOf("body").fontFamily).toBe("AlloSharp_400Regular");
   });
 
-  it("follows the sans preset: Inter files once it is on, Geist again when it is off", async () => {
+  it("follows the sans preset: Inter files once it is on, Allo Sharp again when it is off", async () => {
     useThemeStore.getState().setSansPreset("inter");
     await render(<StyledText fontWeight="semibold">classic</StyledText>);
     expect(styleOf("classic").fontFamily).toBe("Inter_600SemiBold");
 
-    await act(async () => useThemeStore.getState().setSansPreset("geist"));
-    expect(styleOf("classic").fontFamily).toBe("Geist_600SemiBold");
+    await act(async () => useThemeStore.getState().setSansPreset("allo"));
+    expect(styleOf("classic").fontFamily).toBe("AlloSharp_600SemiBold");
   });
 });

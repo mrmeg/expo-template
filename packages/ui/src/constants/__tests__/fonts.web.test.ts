@@ -1,19 +1,30 @@
 /**
  * Web resolves weight numerically on one multi-weight family (the package's
  * "numeric" strategy). Italic therefore rides on `fontStyle` — Google Fonts
- * serves the real 400 italic for Geist and Newsreader from the stylesheets
- * `useResources` injects, and the browser synthesizes the other weights.
+ * serves the real 400 italic for Inter and Newsreader from the stylesheets
+ * `useResources` injects, and the browser synthesizes the rest (Allo and
+ * Geist ship no italic at all).
  */
 import "../../components/__tests__/forceWebPlatform";
 
-import { interFamilies, resolveFontStyle, newsreaderFamilies } from "../fonts";
+import {
+  fontFamilies,
+  interFamilies,
+  newsreaderFamilies,
+  resolveFontStyle,
+  sansPresetFamilies,
+  type SansPreset,
+} from "../fonts";
 
 describe("resolveFontStyle (web)", () => {
-  it("defaults to Geist + numeric weight, Georgia stack for serif", () => {
+  it("defaults to Allo Sharp + numeric weight, Georgia stack for serif", () => {
     expect(resolveFontStyle({}, "sansSerif", "semibold")).toEqual({
-      fontFamily: expect.stringContaining("\"Geist\""),
+      fontFamily: expect.stringMatching(/^"Allo Sharp", system-ui,/),
       fontWeight: "600",
     });
+    expect(fontFamilies.sansSerif.regular).toBe(sansPresetFamilies.allo.web);
+    // The explicit default is the same as no preset.
+    expect(resolveFontStyle({}, "sansSerif", "bold", { sansPreset: "allo" })).toEqual(resolveFontStyle({}, "sansSerif", "bold"));
     expect(resolveFontStyle({}, "serif", "regular")).toEqual({
       fontFamily: expect.stringContaining("Georgia"),
       fontWeight: "400",
@@ -22,7 +33,7 @@ describe("resolveFontStyle (web)", () => {
 
   it("italic adds fontStyle and keeps the numeric weight", () => {
     expect(resolveFontStyle({}, "sansSerif", "medium", { italic: true })).toEqual({
-      fontFamily: expect.stringContaining("\"Geist\""),
+      fontFamily: expect.stringMatching(/^"Allo Sharp",/),
       fontWeight: "500",
       fontStyle: "italic",
     });
@@ -76,4 +87,35 @@ describe("resolveFontStyle (web)", () => {
       fontWeight: "500",
     });
   });
+
+  it.each<[SansPreset, string]>([
+    ["allo-friendly", "Allo Friendly"],
+    ["allo-round", "Allo Round"],
+    ["geist", "Geist"],
+    ["inter", "Inter"],
+  ])("the %s sans preset is one %s stack with numeric weights", (sansPreset, family) => {
+    const web = sansPresetFamilies[sansPreset].web;
+    expect(web.startsWith(`"${family}", system-ui,`)).toBe(true);
+    expect(resolveFontStyle({}, "sansSerif", "light", { sansPreset })).toEqual({ fontFamily: web, fontWeight: "400" });
+    expect(resolveFontStyle({}, "sansSerif", "medium", { sansPreset })).toEqual({ fontFamily: web, fontWeight: "500" });
+    expect(resolveFontStyle({}, "sansSerif", "bold", { sansPreset })).toEqual({ fontFamily: web, fontWeight: "700" });
+    expect(resolveFontStyle({}, "sansSerif", "regular", { sansPreset, italic: true })).toEqual({
+      fontFamily: web,
+      fontWeight: "400",
+      fontStyle: "italic",
+    });
+    // Serif never follows the sans preset.
+    expect(resolveFontStyle({}, "serif", "regular", { sansPreset }).fontFamily).not.toContain(family);
+  });
+
+  it.each<[SansPreset]>([["allo"], ["allo-friendly"], ["allo-round"], ["geist"]])(
+    "a setFonts sansSerif override beats the %s sans preset",
+    (sansPreset) => {
+      const overrides = { families: { sansSerif: { regular: "Brand" } } };
+      expect(resolveFontStyle(overrides, "sansSerif", "semibold", { sansPreset })).toEqual({
+        fontFamily: "Brand",
+        fontWeight: "600",
+      });
+    },
+  );
 });

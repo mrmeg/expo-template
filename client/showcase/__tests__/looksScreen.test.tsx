@@ -78,7 +78,7 @@ describe("LooksScreen (index)", () => {
     expect(store().colorOverrides).toEqual({});
     expect(store().shapeOverrides).toEqual({});
     expect(store().treatmentOverrides).toEqual({});
-    expect(store().sansPreset).toBe("geist");
+    expect(store().sansPreset).toBe("allo");
   });
 
   it("lists the styling tools after the tiles and opens them under /looks", async () => {

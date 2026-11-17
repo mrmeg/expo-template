@@ -3,6 +3,116 @@
 All notable changes to `@mrmeg/expo-ui` are documented here. This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.39.0]
+
+### Changed
+
+- **Allo replaces Geist as the default sans.** [Allo](https://github.com/joshpuckett/allo)
+  (Josh Puckett, SIL Open Font License 1.1, version 1.0.1) is one variable font
+  with weight, roundness and optical-size axes. The package bundles three cuts
+  of it, each its own family with optical size pinned at 14: **Allo Sharp**
+  (roundness 0, the default, preset `"allo"`), **Allo Friendly** (roundness 50,
+  `"allo-friendly"`) and **Allo Round** (roundness 100, `"allo-round"`). Every
+  app on the package shares one typeface, and roundness is the dial an app or a
+  look turns.
+- **Family names.** Web renders `"Allo Sharp"` (one family, numeric weight 400
+  to 700); native registers `AlloSharp_400Regular`, `AlloSharp_500Medium`,
+  `AlloSharp_600SemiBold` and `AlloSharp_700Bold`. `light` still maps to the
+  regular file, and italic is still synthesized (the cuts are upright only).
+- **Native files ship inside the package.** `useResources()` registers the four
+  Allo Sharp files from `dist/fonts/allo/native/`, as it registered Geist.
+- **Web loads the package's own stylesheet.** When the document has no element
+  with the preset's id, `useResources()` injects the cut's CSS from jsDelivr
+  (`getAlloStylesheetUrl`, `font-display: swap`) instead of a Google Fonts
+  stylesheet. A production web app should self-host (see Upgrading).
+- **Text measures differently.** Text widths change slightly against Geist, so
+  re-check tight single-line layouts. Allo's contextual
+  alternates are on by default in browsers and native text, so a typed `->`
+  renders as an arrow. It covers Latin scripts, Vietnamese included; Cyrillic,
+  Greek and other scripts fall back to the system face.
+- The sharp Latin web file is 41 KB (Geist's was 29 KB, Inter's is 48 KB).
+- **`MediaViewer` hides its top bar on a video page.** The bar now follows the
+  video's custom controls: both fade 3 s into playback, a tap on the video
+  hides or shows both, and a pause or the end brings them back. Before, the
+  bar stayed for as long as a video page was shown. With
+  `videoControls="native"` it still stays.
+- **A tap on a `Video` with `controls="custom"` hides the controls** when they
+  are up, playing or paused, and shows them when they are not. Before, a tap
+  only showed them. Under a mouse pointer they stay up while it hovers.
+
+### Added
+
+- **`SansPreset`** gains `"allo"`, `"allo-friendly"` and `"allo-round"`; it is
+  now `"allo" | "allo-friendly" | "allo-round" | "geist" | "inter"`. A `Look`
+  picks a cut with `sans: "allo-friendly"`, and `loadSansPreset(preset, fonts)`
+  switches at runtime.
+- **`@mrmeg/expo-ui/fonts/allo-friendly` and `@mrmeg/expo-ui/fonts/allo-round`**
+  export `alloFriendlyFonts` and `alloRoundFonts`, the native files of the
+  softer cuts. They are separate entries, so an app on the default never
+  bundles them: `useResources({ sans: "allo-round", sansFonts: alloRoundFonts })`.
+- **From `@mrmeg/expo-ui/constants`:** `defaultSansPreset`, `sansPresetFamilies`
+  (web stack and native names per preset), `sansStylesheetIds` (the element id
+  per preset, `mrmeg-expo-ui-allo` and so on), `alloWebFonts`,
+  `alloUnicodeRanges`, `getAlloFontFaceCss(preset?, { baseUrl?, display? })`
+  (the `@font-face` rules for self-hosting one cut), `getAlloStylesheetUrl` and
+  `ALLO_WEB_FONTS_VERSION`. `interFamilies` is unchanged (it equals
+  `sansPresetFamilies.inter`).
+- **`Video` `onControlsVisibilityChange(visible)`** (`controls="custom"`):
+  reports the custom controls fading in and out, starting with the first
+  state, so a host can show and hide its own bar with them.
+- `dist/fonts/allo/` holds the cuts (`native/*.ttf`, `web/*.woff2`,
+  `web/*.css` and `web/ranges.json`) and `OFL.txt`.
+
+### Removed
+
+- **`@expo-google-fonts/geist` is no longer a dependency**, so it no longer
+  arrives transitively. `"geist"` stays a preset the app loads itself.
+- **`Geist_*` families are no longer registered by default.** A raw
+  `fontFamily: "Geist_500Medium"` in app code now names an unloaded font; use
+  `StyledText` or `useFontStyle`.
+
+### Upgrading
+
+Run `bun add @mrmeg/expo-ui@^0.39.0`, then re-check screenshots: the default
+face changes on every platform.
+
+- **Web, self-hosted fonts.** A `<style id="mrmeg-expo-ui-geist">` block no
+  longer stops an injection: the package now looks for `mrmeg-expo-ui-allo`, so
+  until the block is swapped the app loads the Allo CSS from jsDelivr on top.
+  Copy `allo-sharp-latin.woff2` and `allo-sharp-ext.woff2` from
+  `node_modules/@mrmeg/expo-ui/dist/fonts/allo/web/` into `public/fonts/allo/`,
+  then in `+html.tsx` preload the Latin file and render the rules under the
+  preset's id:
+
+  ```tsx
+  import { getAlloFontFaceCss, sansStylesheetIds } from "@mrmeg/expo-ui/constants";
+
+  <link rel="preload" href="/fonts/allo/allo-sharp-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+  <style id={sansStylesheetIds.allo}>{getAlloFontFaceCss("allo")}</style>
+  ```
+
+  Delete the old Geist files and block, and drop `@fontsource-variable/geist`
+  if it was only there for them.
+- **Raw family names.** Replace any `"Geist_…"` or `"Geist"` literal with
+  `StyledText` / `useFontStyle`.
+- **A softer cut.** Import its native map and pass it with the preset:
+  `useResources({ sans: "allo-friendly", sansFonts: alloFriendlyFonts })`, or
+  set `sans` on a look. Web loads the cut's stylesheet on demand, or self-host
+  it as above with `getAlloFontFaceCss("allo-friendly")` under
+  `sansStylesheetIds["allo-friendly"]` (pass `display: "swap"` for a cut
+  switched to at runtime). Navigation fonts are fixed when the module loads, so
+  they stay on Allo Sharp; build them from `sansPresetFamilies[preset]` if you
+  need the cut there.
+- **Stay on Geist.** Add `@expo-google-fonts/geist` to the app and pass its
+  four weights (per-weight imports, `@expo-google-fonts/geist/400Regular` and
+  so on): `useResources({ sans: "geist", sansFonts: { Geist_400Regular,
+  Geist_500Medium, Geist_600SemiBold, Geist_700Bold } })`. On web keep the
+  `<style id="mrmeg-expo-ui-geist">` block or let the Google Fonts stylesheet
+  load. Allo Sharp still loads alongside it (native files, and on web its
+  stylesheet unless the document has a `mrmeg-expo-ui-allo` element), and
+  navigation fonts stay on Allo Sharp unless you build them from
+  `sansPresetFamilies.geist`.
+
 ## [0.38.0]
 
 ### Changed

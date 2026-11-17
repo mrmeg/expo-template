@@ -44,12 +44,12 @@ describe("StyledText typography (web)", () => {
     ["medium", "500"],
     ["semibold", "600"],
     ["bold", "700"],
-  ])("resolves fontWeight=%s to the shared Geist family plus numeric fontWeight=%s", async (weight, expectedNumericWeight) => {
+  ])("resolves fontWeight=%s to the shared Allo Sharp family plus numeric fontWeight=%s", async (weight, expectedNumericWeight) => {
     await render(<StyledText fontWeight={weight}>{weight}</StyledText>);
 
     const style = flattenTextStyle(weight);
-    expect(style.fontFamily).toContain("Geist");
-    expect(style.fontFamily).not.toMatch(/^Geist_/);
+    expect(style.fontFamily).toContain("\"Allo Sharp\"");
+    expect(style.fontFamily).not.toMatch(/^AlloSharp_/);
     expect(style.fontWeight).toBe(expectedNumericWeight);
   });
 
@@ -82,7 +82,7 @@ describe("StyledText typography (web)", () => {
 
 describe("StyledText sans preset (web)", () => {
   afterEach(() => {
-    useThemeStore.getState().setSansPreset("geist");
+    useThemeStore.getState().setSansPreset("allo");
   });
 
   it("renders the Inter stack with numeric weight once the inter preset is on", async () => {
@@ -91,7 +91,7 @@ describe("StyledText sans preset (web)", () => {
 
     const style = flattenTextStyle("classic");
     expect(style.fontFamily).toContain("\"Inter\"");
-    expect(style.fontFamily).not.toContain("Geist");
+    expect(style.fontFamily).not.toContain("Allo");
     expect(style.fontWeight).toBe("500");
   });
 });
