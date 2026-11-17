@@ -114,13 +114,13 @@ function notifyBackfillRun(results: readonly BackfillVideoThumbnailResult[]) {
   const failed = results.filter((result) => result.status === "failed");
   const created = results.length - failed.length;
   if (failed.length === 0) {
-    notify.success("Thumbnails Created", {
+    notify.success("Thumbnails created", {
       messages: [created === 1 ? "1 thumbnail created" : `${created} thumbnails created`],
       duration: 3000,
     });
     return;
   }
-  notify.warning(created === 0 ? "Thumbnails Failed" : "Some Thumbnails Failed", {
+  notify.warning(created === 0 ? "Thumbnails failed" : "Some thumbnails failed", {
     messages: [
       `${created} of ${results.length} thumbnails created`,
       ...failed.slice(0, 2).map((result) => (result.status === "failed" ? result.errorMessage : "")),
@@ -135,7 +135,7 @@ function notifyUploadRun({ uploaded, failed }: { uploaded: UploadQueueItem[]; fa
   if (total === 0) return;
 
   if (uploaded.length === 0) {
-    notify.error(failed.length === 1 ? "Upload Failed" : `${failed.length} Uploads Failed`, {
+    notify.error(failed.length === 1 ? "Upload failed" : `${failed.length} uploads failed`, {
       messages: failed.slice(0, 3).map((item) => `${item.fileName}: ${item.errorMessage ?? "Failed"}`),
       duration: 6000,
     });
@@ -143,7 +143,7 @@ function notifyUploadRun({ uploaded, failed }: { uploaded: UploadQueueItem[]; fa
   }
 
   if (failed.length > 0) {
-    notify.warning("Upload Incomplete", {
+    notify.warning("Upload incomplete", {
       messages: [
         `${uploaded.length} of ${total} files uploaded`,
         `Failed: ${failed.map((item) => item.fileName).join(", ")}`,
@@ -361,7 +361,7 @@ function useMediaScreenContent() {
         duration: 3000,
       });
     } catch (error) {
-      notify.error("Delete Failed", {
+      notify.error("Delete failed", {
         messages: [
           error instanceof Error ? error.message : "Failed to delete file",
         ],
@@ -391,7 +391,7 @@ function useMediaScreenContent() {
       notify.hide();
 
       if (errorCount > 0) {
-        notify.warning("Delete Incomplete", {
+        notify.warning("Delete incomplete", {
           messages: [
             `${selectedForDelete.length} selected files processed`,
             `${errorCount} storage item${errorCount === 1 ? "" : "s"} failed`,
@@ -411,7 +411,7 @@ function useMediaScreenContent() {
       });
     } catch (error) {
       notify.hide();
-      notify.error("Delete Failed", {
+      notify.error("Delete failed", {
         messages: [
           error instanceof Error ? error.message : "Failed to delete files",
         ],
@@ -437,7 +437,7 @@ function useMediaScreenContent() {
       }
       if (result.status === "picked") queue.add(result.assets);
     } catch (error) {
-      notify.error("Upload Failed", {
+      notify.error("Upload failed", {
         messages: [
           error instanceof Error ? error.message : "Could not open the media library",
         ],

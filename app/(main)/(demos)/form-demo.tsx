@@ -162,10 +162,7 @@ export default function FormDemoScreen() {
   // Handle form submission
   const handleSubmit = useCallback(async () => {
     if (!validateForm()) {
-      notify.error("Validation Error", {
-        messages: ["Please fix the errors before submitting"],
-        duration: 3000,
-      });
+      notify.error("Fix the errors before submitting", { duration: 3000 });
       return;
     }
 
@@ -177,7 +174,7 @@ export default function FormDemoScreen() {
     setIsSubmitting(false);
 
     // Show success notification
-    notify.success("Form Submitted!", {
+    notify.success("Form submitted", {
       messages: [`Welcome, ${formData.name}!`, "Your account has been created."],
       duration: 4000,
     });
