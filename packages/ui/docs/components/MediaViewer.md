@@ -55,8 +55,10 @@ const [open, setOpen] = useState<number | null>(null);
   Safari's own pinch event is not handled), and `+` `-` `0`, up to `maxZoom`
   (default 4). One finger or the mouse pans a zoomed image, never past its
   edge. Paging is off while zoomed, and a page change resets zoom. A tap on an
-  image toggles the chrome; a video page keeps its top bar and the video's own
-  controls (`videoControls`: `"custom"` by default, or the platform's).
+  image toggles the chrome. On a video page the top bar follows the video's own
+  controls (`videoControls`: `"custom"` by default): both fade 3 s into
+  playback, a tap hides or shows both, and a pause or the end brings them
+  back. With the platform's controls (`"native"`) the top bar stays.
   `autoPlay` starts each video page as it is shown (the one opened on and each
   one paged to), as a photo library does; it is off by default. Set it when
   the user opens the viewer by tapping a video. A browser that blocks unmuted

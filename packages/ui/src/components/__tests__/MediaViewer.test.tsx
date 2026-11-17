@@ -870,6 +870,79 @@ describe("video pages", () => {
     expect(flat(chrome()).opacity).toBe(1);
   });
 
+  it("fades the top bar with the video's controls 3 s into playback, and a tap on the video brings both back", async () => {
+    jest.useFakeTimers({ now: 10_000 });
+    await mount({ items: MIXED, initialIndex: 1 });
+    const fake = players()[0].props.player as TestPlayer;
+    expect(flat(chrome()).opacity).toBe(1);
+
+    fake.playing = true;
+    await act(async () => {
+      fake.emit("statusChange", { status: "readyToPlay" });
+      fake.emit("playingChange", { isPlaying: true });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(flat(chrome()).opacity).toBe(0);
+    expect(chrome().props.accessibilityElementsHidden).toBe(true);
+
+    await fireEvent.press(screen.getByTestId("media-viewer-video-surface", hidden));
+    expect(flat(chrome()).opacity).toBe(1);
+
+    await fireEvent.press(screen.getByTestId("media-viewer-video-surface", hidden));
+    expect(flat(chrome()).opacity).toBe(0);
+  });
+
+  it("brings the top bar back when the video pauses", async () => {
+    jest.useFakeTimers({ now: 10_000 });
+    await mount({ items: MIXED, initialIndex: 1 });
+    const fake = players()[0].props.player as TestPlayer;
+    fake.playing = true;
+    await act(async () => {
+      fake.emit("statusChange", { status: "readyToPlay" });
+      fake.emit("playingChange", { isPlaying: true });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+    expect(flat(chrome()).opacity).toBe(0);
+
+    fake.playing = false;
+    await act(async () => {
+      fake.emit("playingChange", { isPlaying: false });
+    });
+
+    expect(flat(chrome()).opacity).toBe(1);
+  });
+
+  it("starts the next video page with its top bar up after the last one hid it", async () => {
+    jest.useFakeTimers({ now: 10_000 });
+    const { rerender } = await mount({ items: MIXED, index: 1 });
+    await fireEvent.press(screen.getByTestId("media-viewer-video-surface", hidden));
+    expect(flat(chrome()).opacity).toBe(0);
+
+    await rerender({ index: 3 });
+
+    expect(flat(chrome()).opacity).toBe(1);
+  });
+
+  it("keeps the top bar up with the platform's video controls", async () => {
+    jest.useFakeTimers({ now: 10_000 });
+    await mount({ items: MIXED, initialIndex: 1, videoControls: "native" });
+    const fake = players()[0].props.player as TestPlayer;
+    fake.playing = true;
+    await act(async () => {
+      fake.emit("statusChange", { status: "readyToPlay" });
+      fake.emit("playingChange", { isPlaying: true });
+    });
+    await act(async () => {
+      jest.advanceTimersByTime(10000);
+    });
+
+    expect(flat(chrome()).opacity).toBe(1);
+  });
+
   it("closes on a vertical drag that no control claimed", async () => {
     const { onClose } = await mount({ items: MIXED, initialIndex: 1 });
     const swipe = new Gesture(videoPage);
