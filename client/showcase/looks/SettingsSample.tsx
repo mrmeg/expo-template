@@ -10,7 +10,7 @@ import { TextInput } from "@mrmeg/expo-ui/components/TextInput";
 import { spacing } from "@mrmeg/expo-ui/constants";
 import { useTheme } from "@mrmeg/expo-ui/hooks";
 
-import { useLookDisplay, type SampleScreen } from "./context";
+import type { SampleScreen } from "./context";
 import { ActionButton, ListPanel, MockTabBar, SampleFrame, ScreenHeader, SectionLabel } from "./parts";
 
 const APPEARANCE = ["System", "Light", "Dark"];
@@ -19,7 +19,6 @@ const APPEARANCE_WIDTH = 216;
 /** The Settings sample: account header, profile fields, preference rows, actions, a tab bar. */
 export function SettingsSample({ framed, onNavigate }: { framed: boolean; onNavigate?: (screen: SampleScreen) => void }) {
   const { theme } = useTheme();
-  const display = useLookDisplay();
   const [name, setName] = useState("Ada Lovelace");
   const [email, setEmail] = useState("hello@terlo.app");
   const [notifications, setNotifications] = useState(true);
@@ -29,7 +28,7 @@ export function SettingsSample({ framed, onNavigate }: { framed: boolean; onNavi
   return (
     <SampleFrame screen="settings" framed={framed}>
       <View style={framed ? styles.fill : undefined}>
-        <ScreenHeader n={3} eyebrow="Account" title="Settings" />
+        <ScreenHeader eyebrow="Account" title="Settings" />
 
         <View style={styles.body}>
           <View style={[styles.gutter, styles.account]}>
@@ -46,7 +45,7 @@ export function SettingsSample({ framed, onNavigate }: { framed: boolean; onNavi
           </View>
 
           <View style={[styles.gutter, styles.fields]}>
-            <SectionLabel n={4}>Profile</SectionLabel>
+            <SectionLabel>Profile</SectionLabel>
             <TextInput label="Display name" value={name} onChangeText={setName} autoCapitalize="words" />
             <TextInput
               label="Email"
@@ -60,7 +59,7 @@ export function SettingsSample({ framed, onNavigate }: { framed: boolean; onNavi
 
           <View style={styles.section}>
             <View style={styles.gutter}>
-              <SectionLabel n={5}>Preferences</SectionLabel>
+              <SectionLabel>Preferences</SectionLabel>
             </View>
             <ListPanel>
               <ItemGroup>
@@ -90,7 +89,6 @@ export function SettingsSample({ framed, onNavigate }: { framed: boolean; onNavi
                         values={APPEARANCE}
                         value={appearance}
                         onValueChange={setAppearance}
-                        tintColor={display.segmentTint === "primary" ? theme.colors.primary : undefined}
                       />
                     </View>
                   </ItemActions>

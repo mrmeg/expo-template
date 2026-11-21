@@ -48,7 +48,7 @@ export default function LooksScreen() {
     <>
       <Seo
         title="Looks - Expo Template"
-        description="Style references for the @mrmeg/expo-ui base design system: Refined (the default), Classic, Strand, Glass and Editorial, each with colors, type, shape and a copyable snippet."
+        description="Style references for the @mrmeg/expo-ui base design system: Refined (the default), Classic, Meridian, Glass and Editorial, each with colors, type, shape and a copyable snippet."
       />
       <ScrollView
         testID="looks-gallery"

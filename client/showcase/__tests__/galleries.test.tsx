@@ -304,9 +304,9 @@ describe("Explore", () => {
   it("finds looks in search and links to their detail page", async () => {
     await render(<ExploreScreen />);
 
-    await fireEvent.changeText(screen.getByTestId("explore-search"), "strand");
+    await fireEvent.changeText(screen.getByTestId("explore-search"), "meridian");
 
-    expect(screen.getByTestId("explore-hit-look-strand")).toBeTruthy();
+    expect(screen.getByTestId("explore-hit-look-meridian")).toBeTruthy();
   });
 
   it("finds the styling tools in search now that they live under Looks", async () => {

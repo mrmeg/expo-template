@@ -97,12 +97,12 @@ describe("LooksScreen (index)", () => {
 
 describe("LookDetailScreen", () => {
   it("applies the look on focus, shows every section, and restores Refined on blur", async () => {
-    mockRoute.id = "strand";
+    mockRoute.id = "meridian";
     const view = await render(<LookDetailScreen />);
 
     await act(async () => {});
-    expect(store().colorOverrides.light?.accent).toBe("#0a6aa6");
-    expect(store().shapeOverrides.card).toEqual({ borderRadius: 2 });
+    expect(store().colorOverrides.light?.accent).toBe("#1d5fc4");
+    expect(store().shapeOverrides.card).toEqual({ borderRadius: 12 });
 
     expect(screen.getByText("The whole app takes this look while this page is open.")).toBeTruthy();
     expect(screen.getByText("Preview")).toBeTruthy();
@@ -111,7 +111,7 @@ describe("LookDetailScreen", () => {
     expect(screen.getByTestId("look-detail-roles")).toBeTruthy();
     expect(screen.getByTestId("look-shape-card")).toBeTruthy();
     expect(screen.getByTestId("look-treatment-elevation")).toBeTruthy();
-    expect(screen.getByText(/applyLook\(strandLook\)/)).toBeTruthy();
+    expect(screen.getByText(/applyLook\(meridianLook\)/)).toBeTruthy();
     expect(screen.getByText("Overview")).toBeTruthy();
 
     await view.unmount();
@@ -131,10 +131,10 @@ describe("LookDetailScreen", () => {
   });
 
   it("re-applies when the id changes", async () => {
-    mockRoute.id = "strand";
+    mockRoute.id = "meridian";
     const view = await render(<LookDetailScreen />);
     await act(async () => {});
-    expect(store().shapeOverrides.card).toEqual({ borderRadius: 2 });
+    expect(store().shapeOverrides.card).toEqual({ borderRadius: 12 });
 
     mockRoute.id = "glass";
     await view.rerender(<LookDetailScreen />);

@@ -27,17 +27,18 @@ function ensureStylesheet(id: string, href: string): Promise<void> {
 
 /**
  * Get a look's faces ready before `applyLook`: the Inter files on native and
- * the Inter stylesheet on web for `sans: "inter"`, and Strand's Google Fonts
- * stylesheet on web. Native Strand adds no files (it keeps the default sans and
- * the platform mono).
+ * the Inter stylesheet on web for `sans: "inter"`, and Meridian's Google Fonts
+ * stylesheet (Geist Mono) on web. Native Meridian adds no files (it keeps the
+ * platform mono).
  */
 export async function loadLookFonts(demo: DemoLook): Promise<void> {
   if (demo.fonts) {
     await ensureStylesheet(demo.fonts.webStylesheet.id, demo.fonts.webStylesheet.href);
   }
   if (demo.look.sans === "inter") {
-    // `loadSansPreset` does nothing while a sansSerif override is set (Strand's
-    // web override), so clear the overrides the previous look left first.
+    // `loadSansPreset` does nothing while a sansSerif override is set, so clear
+    // the font overrides the previous look left first (no demo look sets a
+    // sansSerif one; Meridian's web mono is cleared here too).
     useThemeStore.getState().setFonts({});
     await loadSansPreset("inter", interFontMap);
   }

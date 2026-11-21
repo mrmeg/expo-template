@@ -148,7 +148,7 @@ uppercase eyebrow, offset focus ring, layered shadows. `applyLook(look)`
 applies one through `setColors`, `setFonts`, `setShape`, and `setTreatments`;
 `useTreatment(name)` reads a treatment. Looks is a Library section next to
 Components, Blocks and Templates: `/looks` lists the style references (Refined,
-Classic, Strand, Glass, Editorial) and `/looks/<id>` applies one across the app
+Classic, Meridian, Glass, Editorial) and `/looks/<id>` applies one across the app
 while the page is open, with its colors, type, shape, treatments and a copyable
 snippet. The sources are `client/showcase/LooksScreen.tsx` and
 `client/showcase/LookDetailScreen.tsx`. Two tools for testing your own palette

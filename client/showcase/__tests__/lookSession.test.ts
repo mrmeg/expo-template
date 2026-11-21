@@ -40,9 +40,9 @@ beforeEach(() => {
 
 describe("claimLook", () => {
   it("applies the look and restores Refined on release", async () => {
-    const release = claimLook(look("strand"));
+    const release = claimLook(look("meridian"));
     await flush();
-    expect(accent()).toBe("#0a6aa6");
+    expect(accent()).toBe("#1d5fc4");
 
     release();
     expect(useThemeStore.getState().colorOverrides).toEqual({});
@@ -50,7 +50,7 @@ describe("claimLook", () => {
   });
 
   it("keeps the new look when the old page blurs after the new one focused", async () => {
-    const releaseA = claimLook(look("strand"));
+    const releaseA = claimLook(look("meridian"));
     await flush();
     const releaseB = claimLook(look("glass"));
     releaseA();
@@ -62,7 +62,7 @@ describe("claimLook", () => {
   });
 
   it("applies the new look when the old page blurs before the new one focuses", async () => {
-    claimLook(look("strand"))();
+    claimLook(look("meridian"))();
     expect(useThemeStore.getState().colorOverrides).toEqual({});
     claimLook(look("glass"));
     await flush();
@@ -83,14 +83,14 @@ describe("claimLook", () => {
   it("lets a superseded claim's late font load finish without overriding the newest look", async () => {
     mockGate = true;
     claimLook(look("classic"));
-    claimLook(look("strand"));
+    claimLook(look("meridian"));
     // The newest claim settles first, then the stale one lands.
     mockPending[1].resolve();
     await flush();
     mockPending[0].resolve();
     await flush();
 
-    expect(accent()).toBe("#0a6aa6");
+    expect(accent()).toBe("#1d5fc4");
     expect(useThemeStore.getState().sansPreset).toBe("allo");
   });
 });

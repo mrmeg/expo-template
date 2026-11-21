@@ -1,9 +1,14 @@
 /**
- * Data for the Looks demo: the five looks the design boards define, as
- * `@mrmeg/expo-ui` `Look` objects plus the demo-only presentation the package
- * cannot express.
+ * Data for the Looks demo: five looks as `@mrmeg/expo-ui` `Look` objects plus
+ * the demo-only presentation the package cannot express.
  *
- * Refined is the package default and Classic ships in the package. Strand,
+ * Refined is the package default and Classic ships in the package. Meridian
+ * does not come from the design boards: it was designed on the Housefold hub
+ * canvas (cool carbon neutrals, hairlines and one blue signal, with
+ * Editorial's soft corners), so its values are authored here. Its titles,
+ * figures, eyebrows and tab labels stay the default sans (Allo); Newsreader
+ * (`serif`) and Geist Mono (`mono`, web) are there for an app that asks for them.
+ *
  * Glass and Editorial map the boards' CSS variables onto package tokens:
  * --bg background, --sunken surfaceSunken, --card card + popover, --muted
  * muted + secondary, --fg text/foreground, --dim textDim + mutedForeground,
@@ -32,24 +37,13 @@ export type DemoDisplay = {
     weight: FontWeight;
     variant?: FontVariant;
     tracking: number;
-    uppercase?: boolean;
-    /** `font-stretch: 125%` (web only; needs the Archivo `wdth` axis). */
-    wide?: boolean;
   };
   /** Metric figures on the stat tiles. When absent the kit's `StatCard` renders them. */
   figure?: { size: FontSize; weight: FontWeight; variant: FontVariant; tracking: number };
-  /** Face for eyebrows, tab labels and the "01 /" prefixes. */
-  labelVariant?: FontVariant;
-  /** Uppercase, tracked tab labels and segment/button text (Strand). */
-  tabLabels?: "uppercase";
-  /** Selected segment fill: the primary color instead of the treatment's. */
-  segmentTint?: "primary";
   /** The sample frame's decoration. */
-  chrome: "plain" | "hud" | "glass";
+  chrome: "plain" | "glass";
   /** A dot under the active tab. */
   tabDot: boolean;
-  /** Strand: faint grid lines over the background. */
-  gridLine?: Record<Scheme, string>;
   /** Glass: two blurred-shape colors behind the translucent panels. */
   orbs?: Record<Scheme, [string, string]>;
   /** Glass: the panel and tab-bar fill/edge (rgba), and the web `backdrop-filter`. */
@@ -69,109 +63,103 @@ export type DemoLook = {
   referenceFonts?: Look["fonts"];
 };
 
-const ARCHIVO = "\"Archivo\", system-ui, sans-serif";
-const JETBRAINS_MONO = "\"JetBrains Mono\", ui-monospace, monospace";
+const GEIST_MONO = "\"Geist Mono\", ui-monospace, monospace";
 
 /**
- * Strand's faces. Web: one multi-weight Archivo family for sans (the expanded
- * width is the `font-stretch` the titles ask for) and JetBrains Mono for mono,
- * both from the stylesheet below, so weight is numeric. Native: no font
- * dependency is added, so Strand keeps the default sans and the platform mono;
- * a native family name that is not registered is an error, not a fallback.
+ * Meridian's one face override. Web: Geist Mono for mono (time axes), from the
+ * stylesheet below, weight numeric; sans stays the kit's default (Allo) and
+ * serif the Newsreader preset. Native: no font dependency is added, so Meridian
+ * keeps the platform mono; a native family name that is not registered is an
+ * error, not a fallback.
  */
-const STRAND_WEB_FONTS: NonNullable<Look["fonts"]> = {
-  families: { sansSerif: { regular: ARCHIVO }, mono: { regular: JETBRAINS_MONO } },
+const MERIDIAN_WEB_FONTS: NonNullable<Look["fonts"]> = {
+  families: { mono: { regular: GEIST_MONO } },
   webWeightStrategy: "numeric",
 };
 
-const STRAND_STYLESHEET = {
-  id: "mrmeg-demo-looks-strand",
-  href:
-    "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900" +
-    "&family=JetBrains+Mono:wght@400..700&display=swap",
+const MERIDIAN_STYLESHEET = {
+  id: "mrmeg-demo-looks-meridian",
+  href: "https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&display=swap",
 };
 
-const strandLook: Look = {
-  id: "strand",
-  name: "Strand",
-  description: "Archivo Expanded and JetBrains Mono, carbon and white-out, 2px corners, hairlines, an ice-blue signal.",
-  fonts: Platform.OS === "web" ? STRAND_WEB_FONTS : undefined,
+const meridianLook: Look = {
+  id: "meridian",
+  name: "Meridian",
+  description: "Allo, with Newsreader for one headline and Geist Mono for time axes, cool carbon neutrals, soft 6 / 12 corners, hairlines, one blue signal.",
+  serif: "newsreader",
+  fonts: Platform.OS === "web" ? MERIDIAN_WEB_FONTS : undefined,
   colors: {
     light: {
-      surfaceSunken: "#e6e9e6",
-      background: "#eef0ee",
-      foreground: "#0c0e0f",
-      card: "#f7f8f6",
-      cardForeground: "#0c0e0f",
-      popover: "#f7f8f6",
-      popoverForeground: "#0c0e0f",
-      text: "#0c0e0f",
-      textDim: "#4a5358",
-      primary: "#0c0e0f",
-      primaryForeground: "#eef0ee",
-      secondary: "#e2e6e3",
-      secondaryForeground: "#0c0e0f",
-      muted: "#e2e6e3",
-      mutedForeground: "#4a5358",
-      accent: "#0a6aa6",
+      surfaceSunken: "#eceeeb",
+      background: "#f5f6f4",
+      foreground: "#111416",
+      card: "#fcfcfb",
+      cardForeground: "#111416",
+      popover: "#fcfcfb",
+      popoverForeground: "#111416",
+      text: "#111416",
+      textDim: "#485158",
+      primary: "#111416",
+      primaryForeground: "#f5f6f4",
+      secondary: "#e9ebe8",
+      secondaryForeground: "#111416",
+      muted: "#e9ebe8",
+      mutedForeground: "#485158",
+      accent: "#1d5fc4",
       accentForeground: "#ffffff",
-      link: "#0a6aa6",
+      link: "#1d5fc4",
       destructive: "#b42f1d",
       destructiveForeground: "#ffffff",
       success: "#17704c",
       warning: "#f59e0b",
-      border: "#cdd3d1",
-      borderStrong: "#a7afb0",
-      input: "#a7afb0",
-      ring: "#0a6aa6",
+      border: "#dcdfdc",
+      borderStrong: "#c2c7c5",
+      input: "#c2c7c5",
+      ring: "#1d5fc4",
       overlay: "rgba(0, 0, 0, 0.5)",
     },
     dark: {
-      surfaceSunken: "#070808",
-      background: "#0b0c0d",
-      foreground: "#e6eaec",
-      card: "#101214",
-      cardForeground: "#e6eaec",
-      popover: "#101214",
-      popoverForeground: "#e6eaec",
-      text: "#e6eaec",
-      textDim: "#8f999f",
-      primary: "#e6eaec",
-      primaryForeground: "#0b0c0d",
-      secondary: "#1a1d20",
-      secondaryForeground: "#e6eaec",
-      muted: "#1a1d20",
-      mutedForeground: "#8f999f",
-      accent: "#8fd3ff",
-      accentForeground: "#0b0c0d",
-      link: "#8fd3ff",
+      surfaceSunken: "#090a0c",
+      background: "#0d0f11",
+      foreground: "#eceff1",
+      card: "#14171a",
+      cardForeground: "#eceff1",
+      popover: "#14171a",
+      popoverForeground: "#eceff1",
+      text: "#eceff1",
+      textDim: "#a0aab1",
+      primary: "#eceff1",
+      primaryForeground: "#0d0f11",
+      secondary: "#1d2125",
+      secondaryForeground: "#eceff1",
+      muted: "#1d2125",
+      mutedForeground: "#a0aab1",
+      accent: "#8cc2ff",
+      accentForeground: "#0d0f11",
+      link: "#8cc2ff",
       destructive: "#ff8a7a",
-      destructiveForeground: "#0b0c0d",
+      destructiveForeground: "#0d0f11",
       success: "#7fe0b4",
       warning: "#fbbf24",
-      border: "#262b2f",
-      borderStrong: "#3b4248",
-      input: "#3b4248",
-      ring: "#8fd3ff",
+      border: "#262b30",
+      borderStrong: "#3a4148",
+      input: "#3a4148",
+      ring: "#8cc2ff",
       overlay: "rgba(0, 0, 0, 0.7)",
     },
   },
   shape: {
-    button: { borderRadius: 2, withShadow: false },
-    input: { borderRadius: 2 },
-    card: { borderRadius: 2 },
-    sheet: { borderRadius: 2 },
-    badge: { borderRadius: 2 },
-    dialog: { borderRadius: 2 },
+    button: { borderRadius: 6, withShadow: false },
+    input: { borderRadius: 6 },
+    card: { borderRadius: 12 },
+    sheet: { borderRadius: 12 },
+    badge: { borderRadius: 9999 },
+    dialog: { borderRadius: 12 },
   },
-  // The board's switch is primary in light and accent in dark, its selected
-  // segment the foreground color, its ring a 1px accent line: none of those
-  // is a per-scheme treatment. `primary` / `accent` / `offset` are the closest
-  // (the demo tints the segment itself, see `segmentTint`).
   treatments: {
-    segmentedSelection: "accent",
+    segmentedSelection: "surface",
     switchTrack: "primary",
-    eyebrow: "uppercase",
+    eyebrow: "sentence",
     focusRing: "offset",
     elevation: "hairline",
   },
@@ -363,19 +351,14 @@ export const DEMO_LOOKS: DemoLook[] = [
     },
   },
   {
-    look: strandLook,
+    look: meridianLook,
     display: {
-      title: { size: "xl", weight: "semibold", tracking: 0.08, uppercase: true, wide: true },
-      figure: { size: "xxl", weight: "medium", variant: "mono", tracking: -0.01 },
-      labelVariant: "mono",
-      tabLabels: "uppercase",
-      segmentTint: "primary",
-      chrome: "hud",
-      tabDot: false,
-      gridLine: { light: "rgba(10, 106, 166, 0.06)", dark: "rgba(143, 211, 255, 0.05)" },
+      title: { size: "xxl", weight: "semibold", tracking: -0.02 },
+      chrome: "plain",
+      tabDot: true,
     },
-    fonts: { webStylesheet: STRAND_STYLESHEET },
-    referenceFonts: STRAND_WEB_FONTS,
+    fonts: { webStylesheet: MERIDIAN_STYLESHEET },
+    referenceFonts: MERIDIAN_WEB_FONTS,
   },
   {
     look: glassLook,
