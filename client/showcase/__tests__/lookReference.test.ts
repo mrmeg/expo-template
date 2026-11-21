@@ -36,9 +36,9 @@ describe("lookReference", () => {
   });
 
   it("lists every semantic token once, flagging the ones a look sets", () => {
-    const rows = lookColorRows(demo("strand").look);
+    const rows = lookColorRows(demo("meridian").look);
     expect(rows.map((row) => row.token)).toEqual(Object.keys(rawThemeColors.light));
-    expect(rows.find((row) => row.token === "accent")).toMatchObject({ light: "#0a6aa6", dark: "#8fd3ff", changed: true });
+    expect(rows.find((row) => row.token === "accent")).toMatchObject({ light: "#1d5fc4", dark: "#8cc2ff", changed: true });
     expect(lookColorRows(demo("refined").look).some((row) => row.changed)).toBe(false);
   });
 
@@ -57,9 +57,9 @@ describe("lookReference", () => {
     const refined = Object.fromEntries(lookShapeRows(demo("refined").look).map((row) => [row.slot, row.radius]));
     expect(refined).toEqual({ button: 8, input: 8, card: 14, sheet: "platform", badge: 9999, dialog: 14 });
 
-    const strand = Object.fromEntries(lookShapeRows(demo("strand").look).map((row) => [row.slot, row.radius]));
-    expect(strand).toMatchObject({ button: 2, card: 2, sheet: 2 });
-    expect(lookButtonShadow(demo("strand").look)).toBe(false);
+    const meridian = Object.fromEntries(lookShapeRows(demo("meridian").look).map((row) => [row.slot, row.radius]));
+    expect(meridian).toMatchObject({ button: 6, card: 12, sheet: 12 });
+    expect(lookButtonShadow(demo("meridian").look)).toBe(false);
     expect(lookButtonShadow(demo("refined").look)).toBe(true);
   });
 
@@ -80,12 +80,12 @@ describe("lookReference", () => {
   });
 
   it("generates the Look object to copy for template looks, plus the fonts they need", () => {
-    const strand = lookSnippet(demo("strand"));
-    expect(strand).toContain("applyLook(strandLook)");
-    expect(strand).toContain("const strandLook: Look = {");
-    expect(strand).toContain("accent: \"#0a6aa6\"");
-    expect(strand).toContain("Archivo");
-    expect(strand).toContain("fonts.googleapis.com");
+    const meridian = lookSnippet(demo("meridian"));
+    expect(meridian).toContain("applyLook(meridianLook)");
+    expect(meridian).toContain("const meridianLook: Look = {");
+    expect(meridian).toContain("accent: \"#1d5fc4\"");
+    expect(meridian).toContain("Geist Mono");
+    expect(meridian).toContain("fonts.googleapis.com");
 
     const editorial = lookSnippet(demo("editorial"));
     expect(editorial).toContain("serif: \"newsreader\"");

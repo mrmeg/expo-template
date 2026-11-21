@@ -56,8 +56,8 @@ function resolved(id: string, scheme: Scheme): ThemeColors {
 }
 
 describe("demo looks", () => {
-  it("lists Refined first, then Classic, Strand, Glass, Editorial", () => {
-    expect(DEMO_LOOKS.map((demo) => demo.look.id)).toEqual(["refined", "classic", "strand", "glass", "editorial"]);
+  it("lists Refined first, then Classic, Meridian, Glass, Editorial", () => {
+    expect(DEMO_LOOKS.map((demo) => demo.look.id)).toEqual(["refined", "classic", "meridian", "glass", "editorial"]);
   });
 
   it.each(DEMO_LOOKS.filter((demo) => !PACKAGE_LOOK_IDS.has(demo.look.id)).map((demo) => demo.look))(

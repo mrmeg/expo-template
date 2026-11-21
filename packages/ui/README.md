@@ -591,7 +591,7 @@ const selection = useTreatment("segmentedSelection"); // "surface" | "accent"
 ```
 
 The template's Looks section (`/looks`, then `/looks/<id>` per look) previews
-Refined, Classic, Strand, Glass, and Editorial across the app and shows each
+Refined, Classic, Meridian, Glass, and Editorial across the app and shows each
 one's colors, type, shape, treatments, and snippet. Two tools sit under it: the
 Themed Showcase (`/looks/themed-showcase`) and the Surface Lab
 (`/looks/surface-lab`).

@@ -387,7 +387,7 @@ describe("componentDetailRoute", () => {
 
 describe("lookRoute", () => {
   it("hangs the look id off the looks route", () => {
-    expect(lookRoute("strand")).toBe("/(main)/(demos)/looks/strand");
+    expect(lookRoute("meridian")).toBe("/(main)/(demos)/looks/meridian");
     expect(SHOWCASE_ROUTES.looks).toBe("/(main)/(demos)/looks");
   });
 });

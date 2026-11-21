@@ -50,7 +50,6 @@ export function HomeSample({ framed, onNavigate }: { framed: boolean; onNavigate
     <SampleFrame screen="home" framed={framed}>
       <View style={framed ? styles.fill : undefined}>
         <ScreenHeader
-          n={1}
           eyebrow="This week"
           title="Overview"
           trailing={
@@ -69,7 +68,6 @@ export function HomeSample({ framed, onNavigate }: { framed: boolean; onNavigate
               values={[...RANGES]}
               value={range}
               onValueChange={(value) => setRange(value as Range)}
-              tintColor={display.segmentTint === "primary" ? theme.colors.primary : undefined}
             />
           </View>
 
@@ -103,7 +101,7 @@ export function HomeSample({ framed, onNavigate }: { framed: boolean; onNavigate
 
           <View style={styles.section}>
             <View style={[styles.gutter, styles.sectionHeader]}>
-              <SectionLabel n={2}>Upcoming</SectionLabel>
+              <SectionLabel>Upcoming</SectionLabel>
               <Button preset="link" size="sm" accessibilityLabel="See all upcoming" onPress={() => {}}>
                 <StyledText selectable={false} size="base" fontWeight="medium" style={{ color: theme.colors.link }}>
                   See all

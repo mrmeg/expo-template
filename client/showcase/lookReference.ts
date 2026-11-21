@@ -157,7 +157,7 @@ function literal(value: unknown, depth = 0): string {
 /** The `Look` fields, in a stable reading order, without the ones the look leaves unset. */
 function lookLiteral(demo: DemoLook): string {
   const { look } = demo;
-  // Strand's families are web-only in the live object; the reference shows what it asks for there.
+  // Meridian's mono is web-only in the live object; the reference shows what it asks for there.
   const fonts = demo.referenceFonts ?? look.fonts;
   return literal({
     id: look.id,
