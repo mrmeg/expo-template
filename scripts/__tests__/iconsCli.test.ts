@@ -176,7 +176,7 @@ describe("expo-ui-icons add", () => {
     expect(result.output).toContain("trash-2 → trash");
     expect(JSON.parse(read("client/icons.json")).icons).toEqual([
       "check",
-      "square-centerline-dashed-horizontal",
+      "square-axis-dashed-vertical",
       "trash",
     ]);
   });

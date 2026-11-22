@@ -455,8 +455,8 @@ describe("icon-source names Lucide aliases that have their own codepoints", () =
   // Lucide 1.57 keeps these four names with glyph files identical to a canonical icon.
   it.each([
     ["Trash2", "trash-2", "trash"],
-    ["FlipHorizontal", "flip-horizontal", "square-centerline-dashed-horizontal"],
-    ["FlipVertical", "flip-vertical", "square-centerline-dashed-vertical"],
+    ["FlipHorizontal", "flip-horizontal", "square-axis-dashed-vertical"],
+    ["FlipVertical", "flip-vertical", "square-axis-dashed-horizontal"],
     ["TextSelection", "text-selection", "square-dashed-text"],
   ])("%s resolves to a name the registry has", (component, kebab, canonical) => {
     const result = linter.verify(`import { ${component} } from "lucide-react-native";`, config, file);
@@ -472,7 +472,7 @@ describe("icon-source names Lucide aliases that have their own codepoints", () =
 
   it.each([
     ["trash-2", "trash"],
-    ["flip-horizontal", "square-centerline-dashed-horizontal"],
+    ["flip-horizontal", "square-axis-dashed-vertical"],
   ])("rewrites name=%s to %s", (alias, canonical) => {
     const result = linter.verifyAndFix(`${COMPONENTS}const a = <Icon name="${alias}" />;`, config, file);
     expect(result.output).toBe(`${COMPONENTS}const a = <Icon name="${canonical}" />;`);
