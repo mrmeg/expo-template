@@ -6,7 +6,7 @@
  *    wrapper around `@sentry/browser` plus ~200 kB of native-only integrations
  *    (RN tracing, profiling, feedback, replay stubs) that never run in a
  *    browser. The root `package.json` pins `@sentry/react` to the exact
- *    version `@sentry/react-native` depends on (10.74.0 for RN SDK 8.26.x), so
+ *    version `@sentry/react-native` depends on (10.78.0 for RN SDK 8.36.x), so
  *    one `@sentry/core` is installed and both platforms report through one
  *    Sentry release. Re-pin it whenever the RN SDK is upgraded.
  *
