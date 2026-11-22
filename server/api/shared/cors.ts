@@ -47,6 +47,20 @@ export const CORS_ALLOWED_HEADERS = [
 ] as const;
 export const CORS_MAX_AGE_SECONDS = 86400;
 
+/**
+ * PROTOTYPE (proto/agent-connector): request headers an MCP Streamable HTTP
+ * client sends to `/api/mcp`, allowed in that path's preflight only.
+ * `Authorization` is already in the base list.
+ */
+export const MCP_CORS_PATH = "/api/mcp";
+export const MCP_CORS_ALLOWED_HEADERS = [
+  "Mcp-Protocol-Version",
+  "Mcp-Method",
+  "Mcp-Name",
+  "Mcp-Session-Id",
+  "Last-Event-ID",
+] as const;
+
 let parsedOrigins: { raw: string | undefined; origins: string[] } | null = null;
 
 /** `https://App.example.com/` → `https://app.example.com`; unparseable entries stay as typed. */
@@ -104,16 +118,18 @@ export function getCorsHeaders(request: RequestLike, env?: Env): Record<string, 
  * Headers for a preflight (OPTIONS) response. The allowed methods and
  * headers are only advertised to an allowed origin.
  */
-export function getPreflightHeaders(request: RequestLike, env?: Env): Record<string, string> {
+export function getPreflightHeaders(request: RequestLike, env?: Env, pathname?: string): Record<string, string> {
   const headers = getCorsHeaders(request, env);
   if (!headers["Access-Control-Allow-Origin"]) {
     return { ...headers, "Access-Control-Max-Age": String(CORS_MAX_AGE_SECONDS) };
   }
 
+  const allowedHeaders =
+    pathname === MCP_CORS_PATH ? [...CORS_ALLOWED_HEADERS, ...MCP_CORS_ALLOWED_HEADERS] : CORS_ALLOWED_HEADERS;
   return {
     ...headers,
     "Access-Control-Allow-Methods": CORS_ALLOWED_METHODS.join(", "),
-    "Access-Control-Allow-Headers": CORS_ALLOWED_HEADERS.join(", "),
+    "Access-Control-Allow-Headers": allowedHeaders.join(", "),
     "Access-Control-Max-Age": String(CORS_MAX_AGE_SECONDS),
   };
 }
@@ -133,8 +149,8 @@ export function applyCorsHeaders(request: RequestLike, headers: Headers, env?: E
 }
 
 /** A complete answer to a preflight request. */
-export function preflightResponse(request: RequestLike, env?: Env): Response {
-  return new Response(null, { status: 204, headers: getPreflightHeaders(request, env) });
+export function preflightResponse(request: RequestLike, env?: Env, pathname?: string): Response {
+  return new Response(null, { status: 204, headers: getPreflightHeaders(request, env, pathname) });
 }
 
 /**

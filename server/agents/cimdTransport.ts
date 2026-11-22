@@ -3,12 +3,14 @@
  *
  * `@better-auth/cimd` needs an application-owned fetch that resolves DNS once,
  * refuses special-use addresses, pins the connection and never follows
- * redirects. better-auth ships one for Node (`@better-auth/cimd/node`); the
- * docs say other runtimes, Bun included, must bring their own.
+ * redirects. better-auth ships one built on `node:dns` + `node:https`
+ * (`@better-auth/cimd/node`); the docs only promise it for Node, but it runs
+ * unchanged on Bun 1.3 (verified against
+ * https://claude.ai/oauth/claude-code-client-metadata), so it is the transport
+ * for every real client_id URL.
  *
- * With `PROTO_FAKE_AUTH=1` the e2e fixture client below is served in-process
- * (no network), and every other URL is refused. Outside fake mode the Node
- * transport is used as-is (unverified on Bun).
+ * With `PROTO_FAKE_AUTH=1` the e2e fixture client id below is served
+ * in-process (no network); every other URL still goes to the real transport.
  */
 
 import type { ClientMetadataResourceFetch } from "@better-auth/oauth-provider";
@@ -29,16 +31,16 @@ const fixtureDocument = {
   token_endpoint_auth_method: "none",
 };
 
-const fixtureFetch: ClientMetadataResourceFetch = async (input) => {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  if (url !== PROTO_CIMD_CLIENT_ID) {
-    throw new TypeError(`[proto-agent] CIMD fixture transport refuses ${url}`);
-  }
-  return new Response(JSON.stringify(fixtureDocument), {
-    status: 200,
-    headers: { "Content-Type": "application/json", "Cache-Control": "max-age=60" },
-  });
-};
+function urlOf(input: RequestInfo | URL): string {
+  return typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+}
 
-export const fetchClientMetadataResource: ClientMetadataResourceFetch = (input, init) =>
-  isProtoFakeAuth() ? fixtureFetch(input, init) : nodeFetchClientMetadataResource(input, init);
+export const fetchClientMetadataResource: ClientMetadataResourceFetch = async (input, init) => {
+  if (isProtoFakeAuth() && urlOf(input) === PROTO_CIMD_CLIENT_ID) {
+    return new Response(JSON.stringify(fixtureDocument), {
+      status: 200,
+      headers: { "Content-Type": "application/json", "Cache-Control": "max-age=60" },
+    });
+  }
+  return nodeFetchClientMetadataResource(input, init);
+};

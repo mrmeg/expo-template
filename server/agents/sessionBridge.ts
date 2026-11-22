@@ -20,7 +20,7 @@
  *               setSessionCookie (better-auth/cookies)
  *   - plugin-context (documented for plugin authors as "internal db calls"):
  *               ctx.context.internalAdapter.findAccountOwnerByKey,
- *               findUserByEmail, createOAuthUser, linkAccount, createSession;
+ *               findUserByEmail (collision check only), createOAuthUser, createSession;
  *               ctx.context.adapter.updateMany/deleteMany (disconnect)
  */
 
@@ -53,8 +53,12 @@ export const agentSessionBridge = () =>
             throw new APIError("UNAUTHORIZED", { message: "App sign-in required" });
           }
 
+          // Identity is the app's external user id (Cognito `sub`) and nothing
+          // else: never find or link a user by email. Cognito access tokens
+          // carry no email, so the shadow user gets a per-sub placeholder.
           const externalId = auth.user.userId;
-          const email = (auth.user.email ?? `${externalId}@users.invalid`).toLowerCase();
+          const tokenEmail = auth.user.email?.toLowerCase() ?? null;
+          const email = tokenEmail ?? `${externalId.toLowerCase()}@app-users.invalid`;
           const adapter = ctx.context.internalAdapter;
 
           const owned = await adapter.findAccountOwnerByKey({
@@ -65,18 +69,19 @@ export const agentSessionBridge = () =>
           let user;
           if (owned?.kind === "owned") {
             user = owned.user;
+          } else if (owned?.kind === "orphaned") {
+            throw new APIError("CONFLICT", { message: "Account record has no user; refusing to continue" });
           } else {
-            const byEmail = await adapter.findUserByEmail(email);
-            if (byEmail) {
-              user = byEmail.user;
-              await adapter.linkAccount({ providerId: BRIDGE_PROVIDER_ID, accountId: externalId, userId: user.id });
-            } else {
-              const created = await adapter.createOAuthUser(
-                { email, name: auth.user.username ?? email, emailVerified: true, image: null },
-                { providerId: BRIDGE_PROVIDER_ID, accountId: externalId },
-              );
-              user = created.user;
+            // Collision check only (better-auth keeps user.email unique): an
+            // email that already belongs to another user fails closed.
+            if (await adapter.findUserByEmail(email)) {
+              throw new APIError("CONFLICT", { message: "This email already belongs to another connector account" });
             }
+            const created = await adapter.createOAuthUser(
+              { email, name: auth.user.username ?? tokenEmail ?? "App user", emailVerified: tokenEmail !== null, image: null },
+              { providerId: BRIDGE_PROVIDER_ID, accountId: externalId },
+            );
+            user = created.user;
           }
 
           const session = await adapter.createSession(user.id);

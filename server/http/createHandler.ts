@@ -66,6 +66,12 @@ export interface CreateHandlerOptions {
   clientDir: string;
   /** Expo Server's request handler for `dist/server` (`createRequestHandler` from `expo-server/adapter/bun`). */
   expoHandler: (request: Request) => Response | Promise<Response>;
+  /**
+   * PROTOTYPE (proto/agent-connector): the same build behind Expo's handler
+   * with `checkOrigin: false`, used only for POSTs to
+   * {@link CROSS_ORIGIN_POST_PATHS}. Omitted → every request keeps the check.
+   */
+  expoHandlerWithoutOriginCheck?: (request: Request) => Response | Promise<Response>;
   /** Defaults to `process.env`. Reads `ALLOWED_ORIGINS`, `TRUST_PROXY`, `NODE_ENV`. */
   env?: Env;
   ffmpegWorker?: FfmpegWorkerRoute | null;
@@ -86,6 +92,19 @@ export interface CreateHandlerOptions {
 }
 
 const LOADER_PREFIX = "/_expo/loaders/";
+
+/**
+ * PROTOTYPE (proto/agent-connector): endpoints an OAuth/MCP client calls from
+ * another origin with a form or no-content-type body. None of them is
+ * authenticated by cookies (client auth, PKCE, or a bearer token), so Expo's
+ * cross-origin form check — which 403s them — is skipped for these POSTs only.
+ */
+export const CROSS_ORIGIN_POST_PATHS: ReadonlySet<string> = new Set([
+  "/api/auth/oauth2/token",
+  "/api/auth/oauth2/register",
+  "/api/auth/oauth2/revoke",
+  "/api/mcp",
+]);
 
 /**
  * `/_expo/loaders/<route>.web` → `/_expo/loaders/<route>`, so a platform-
@@ -188,7 +207,7 @@ export function createHandler(options: CreateHandlerOptions): FetchHandler {
     const { pathname } = url;
 
     if (request.method === "OPTIONS") {
-      return isCorsPath(pathname) ? preflightResponse(request, env) : new Response(null, { status: 204 });
+      return isCorsPath(pathname) ? preflightResponse(request, env, pathname) : new Response(null, { status: 204 });
     }
 
     const limited = rateLimiter.check(pathname, clientAddress);
@@ -222,7 +241,11 @@ export function createHandler(options: CreateHandlerOptions): FetchHandler {
       }
     }
 
-    const response = await options.expoHandler(loaderNormalizedRequest(request, url));
+    const expoHandler =
+      options.expoHandlerWithoutOriginCheck && request.method === "POST" && CROSS_ORIGIN_POST_PATHS.has(pathname)
+        ? options.expoHandlerWithoutOriginCheck
+        : options.expoHandler;
+    const response = await expoHandler(loaderNormalizedRequest(request, url));
     return compressResponse(request, response, options.responseCompression);
   }
 

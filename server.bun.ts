@@ -17,6 +17,7 @@ import { createHandler, type PeerInfo } from "./server/http/createHandler";
 declare const Bun: {
   serve(options: {
     port: number;
+    idleTimeout?: number;
     fetch(request: Request, server: PeerInfo): Response | Promise<Response>;
   }): unknown;
 };
@@ -25,16 +26,25 @@ const root = process.cwd();
 const ffmpegWorker = loadFfmpegWorker(root) as { contents: string } | null;
 
 const expoHandler = createRequestHandler({ build: path.join(root, "dist/server") });
+// PROTOTYPE (proto/agent-connector): same build, no cross-origin form check,
+// used by createHandler only for the OAuth/MCP POST paths in CROSS_ORIGIN_POST_PATHS.
+const expoHandlerWithoutOriginCheck = createRequestHandler(
+  { build: path.join(root, "dist/server") },
+  { checkOrigin: false },
+);
 
 const handler = createHandler({
   clientDir: path.join(root, "dist/client"),
   expoHandler,
+  expoHandlerWithoutOriginCheck,
   ffmpegWorker: ffmpegWorker ? { url: FFMPEG_WORKER_URL, contents: ffmpegWorker.contents } : null,
 });
 
 const port = Number(process.env.PORT || 3000);
 
-Bun.serve({ port, fetch: handler });
+// Bun's default idle timeout is 10 s; long MCP tool calls and SSE streams need
+// more. 255 s is Bun's maximum.
+Bun.serve({ port, idleTimeout: 255, fetch: handler });
 
 console.log(`Bun server listening on port ${port}`);
 

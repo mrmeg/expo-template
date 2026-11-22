@@ -58,6 +58,15 @@ export const auth = betterAuth({
   disabledPaths: ["/token"],
   emailAndPassword: { enabled: false },
   telemetry: { enabled: false },
+  advanced: {
+    // `__Secure-` cookies + `Secure` whenever the public origin is https.
+    // SameSite=Lax still rides along on the top-level GET navigation from the
+    // assistant's site into /oauth2/authorize; every later POST is same-origin.
+    useSecureCookies: AGENT_BASE_URL.startsWith("https://"),
+    defaultCookieAttributes: { sameSite: "lax" },
+    // Behind the tunnel/proxy the peer is the proxy; it sets X-Forwarded-For.
+    ipAddress: { ipAddressHeaders: ["x-forwarded-for"] },
+  },
   plugins: [
     jwt({ disableSettingJwtHeader: true }),
     mcp({
@@ -72,6 +81,10 @@ export const auth = betterAuth({
       clientRegistrationDefaultScopes: AGENT_SCOPES,
       grantTypes: ["authorization_code", "refresh_token"],
       accessTokenExpiresIn: 3600,
+      // The login page shows the client's name before sign-in (signed query required).
+      allowPublicClientPrelogin: true,
+      // Default is 5/min per IP; a test session re-registers clients freely.
+      rateLimit: { register: { window: 60, max: 60 } },
     }),
     cimd({
       fetchClientMetadataResource,

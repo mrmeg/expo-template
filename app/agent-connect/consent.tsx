@@ -23,9 +23,9 @@ interface ConsentInfo {
 
 const SCOPE_LABELS: Record<string, string> = {
   "notes:read": "Read your notes",
-  "notes:write": "Add notes for you",
-  offline_access: "Stay connected when you are away",
-  openid: "Know who you are",
+  "notes:write": "Add notes",
+  offline_access: "Stay connected without asking again",
+  openid: "Confirm who you are",
   profile: "See your name",
   email: "See your email address",
 };
@@ -70,9 +70,9 @@ export default function AgentConnectConsent() {
       {info.client.client_id_host && <SansSerifText>{`Client ID host: ${info.client.client_id_host}`}</SansSerifText>}
       <SansSerifText>It is asking to:</SansSerifText>
       {info.scopes.map((scope) => (
-        <SansSerifText key={scope}>{`• ${SCOPE_LABELS[scope] ?? scope} (${scope})`}</SansSerifText>
+        <SansSerifText key={scope}>{`• ${SCOPE_LABELS[scope] ?? scope}`}</SansSerifText>
       ))}
-      <SansSerifText>{`You will be sent back to ${info.redirectHost ?? info.redirectUri}`}</SansSerifText>
+      <SansSerifText>{`After you choose, you go back to ${info.redirectHost ?? info.redirectUri}:`}</SansSerifText>
       <SansSerifText>{info.redirectUri}</SansSerifText>
       <Button text="Approve" onPress={() => void decide(true)} />
       <Button text="Deny" onPress={() => void decide(false)} />

@@ -5,7 +5,7 @@ if (__DEV__) {
   require("@/client/lib/devtools/ReactotronConfig");
 }
 
-import { useEffect, useState, type ErrorInfo } from "react";
+import { useEffect, useState, type ErrorInfo, type ReactNode } from "react";
 import { StyleSheet } from "react-native";
 import { Stack, ThemeProvider, usePathname } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -184,7 +184,7 @@ function RootLayoutContent() {
                     FallbackComponent={ErrorScreen}
                     onError={reportBoundaryError}
                   >
-                    {hasSeenOnboarding ? (
+                    <OnboardingSwitch hasSeenOnboarding={hasSeenOnboarding}>
                       <Stack
                         screenOptions={{
                           headerShown: false,
@@ -196,9 +196,7 @@ function RootLayoutContent() {
                         <Stack.Screen name="(main)" />
                         <Stack.Screen name="+not-found" />
                       </Stack>
-                    ) : (
-                      <OnboardingGate />
-                    )}
+                    </OnboardingSwitch>
                   </ErrorBoundary>
                 </KeyboardDismissBoundary>
               </UIProvider>
@@ -212,6 +210,20 @@ function RootLayoutContent() {
       </QueryClientProvider>
     </StartupGate>
   );
+}
+
+/**
+ * PROTOTYPE (proto/agent-connector): the OAuth login and consent pages under
+ * `/agent-connect/*` are reached from another site (an assistant's connector
+ * flow), often in a browser that never saw onboarding, so they skip the gate.
+ * Its own leaf for the same reason as `RouteIdentityObserver`: `usePathname()`
+ * here re-renders only this switch, and `children` (the Stack element built by
+ * the parent) is returned unchanged.
+ */
+function OnboardingSwitch({ hasSeenOnboarding, children }: { hasSeenOnboarding: boolean; children: ReactNode }) {
+  const pathname = usePathname();
+  const exempt = pathname === "/agent-connect" || pathname.startsWith("/agent-connect/");
+  return hasSeenOnboarding || exempt ? <>{children}</> : <OnboardingGate />;
 }
 
 /**
