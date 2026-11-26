@@ -46,7 +46,6 @@ coverage/
 .env
 
 
-CLAUDE.md
 .agents/
 
 # Agent framework: local specs are disposable and never tracked.
@@ -56,10 +55,11 @@ CLAUDE.md
 # Verification screenshots dumped at the repo root (real assets live in subfolders)
 /*.png
 
-/Agent/.secrets/
 
 # Agent eval runs: per-trial JSONL, raw agent logs, and kept trial workdirs
 /evals/agents/results/
 
 # Generated media corpus (bun run media:fixtures); the committed core lives in assets/media/
 /public/media-fixtures/
+
+/.secrets/

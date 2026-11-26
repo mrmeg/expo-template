@@ -66,17 +66,15 @@ unless the user asks for a plan.
 - Generated artifacts, all gated by `bun run verify` and CI (`bun run gen --check`) — regenerate and commit, never hand-edit; `bun run gen` regenerates all of them: `packages/ui/src/components/iconBuiltins.generated.ts` and `packages/ui/src/icons/lucide.json` + `LICENSE.lucide` (`bun run ui:icons`, from the pinned `lucide-static` and `icon-names.json`); `client/icons.generated.ts` (`bun run icons`, from `client/icons.json`; add a name with `bun run icons add <name>`); `client/tabIcons.generated.ts`, `assets/icons/tabs/manifest.json`, and the tab PNGs (`bun run icons:tabs`; rasterizing needs `rsvg-convert`, the check does not); `client/templates/registry.generated.ts` and `client/blocks/registry.generated.ts` (`bun run gen:templates` / `gen:blocks`); the `@mrmeg/expo-ui` component docs (`bun run docs:ui`, built by `scripts/build-ui-docs.mjs` from the frontmatter of `packages/ui/docs/components/*.md`): the index table inside `packages/ui/LLM_USAGE.md`, `packages/ui/docs/components/index.md`, and `packages/ui/llms-full.md`; it also fails when a barrel export is in no doc's `components` list or a size limit is exceeded (`LLM_USAGE.md` 25 KB, each component doc 8 KB, `llms.txt` 3 KB), and it runs before `docs:llms` because the root bundle concatenates its output; `llms-full.txt` and `llms-examples.txt` (`bun run docs:llms`, built by `scripts/build-llms-full.mjs` from its source-doc list and directory walks — rerun after editing those docs or adding/removing demo routes, screens, components, or form wrappers). `bun run docs:versions:check` holds `README.md`'s version claims to `package.json`.
 - Changing a package's `dependencies`, `peerDependencies`, `peerDependenciesMeta`, `exports`, or `files` needs a version bump: `packages:drift-check` fails once npm has that version.
 
-
-
-
 ## Agent Workflow
 
-<!-- agent-framework:v10 -->
+<!-- agent-framework:v11 -->
 
 Use this workflow only for planned work; normal coding requests proceed directly. `grill` or `wayfinder` → `write-spec` → `shift` → `review-shift`, with `review-spec` optional; the skills carry the spec and PR lifecycle.
 
-- Specs and decision maps live flat in the tracked `Agent/` folder and change only by commits on their `base-branch`. Never include `Agent/` files in `agent/*` PR diffs.
-- `Agent/`, `agent/*` branches, and their worktrees hold only live work; nothing outlives its PR.
+- Specs and decision maps live in the Obsidian vault (`mrmeg/obsidian-vault`), in `Notes/Specs/<Project>/`, and change only by `vault commit`; `~/Documents/obsidian_vault/vault specs` lists this repo's queue. Never add them to this repo.
+- Specs, `agent/*` branches, and their worktrees hold only live work; nothing outlives its PR.
 - Create no report, plan, summary, or handoff files; that content belongs in the reply or the PR description.
-- Project memory is this repo's note in the Obsidian vault (`mrmeg/obsidian-vault`, `Notes/Projects/`, matched by `repo`); follow its `Notes/System.md` → Agents rules.
+- Project memory is this repo's note in the vault (`Notes/Projects/`, matched by `repo`); follow its `Notes/System.md` → Agents rules.
+- Local credentials and private test data live in the ignored `/.secrets/` folder, never in the vault.
 - Keep target branches clean and synchronized. Verify with fresh command output.
