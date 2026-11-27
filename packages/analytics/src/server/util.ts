@@ -81,3 +81,10 @@ export function sameHost(a: string | null, b: string | null): boolean {
 export function toDate(value: number | Date | string): Date {
   return value instanceof Date ? new Date(value.getTime()) : new Date(value);
 }
+
+/**
+ * First key of every advisory lock this package takes. The two-key form keeps
+ * them out of the single-bigint keyspace a host's own `pg_advisory_lock(n)`
+ * calls use, so a lock keyed on client-supplied text can never collide with one.
+ */
+export const ADVISORY_LOCK_SPACE = 1161907777;

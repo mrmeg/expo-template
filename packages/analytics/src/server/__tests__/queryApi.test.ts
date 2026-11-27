@@ -21,7 +21,7 @@ function stubSql(options: { installed?: () => boolean; onReport?: (text: string,
     async query<T>(text: string, params?: readonly SqlParam[]): Promise<T[]> {
       calls.push(text);
       const installed = options.installed?.() ?? true;
-      if (text.includes("to_regclass")) return (installed ? TABLE_KEYS.map((key) => ({ key })) : []) as T[];
+      if (text.includes("to_regclass")) return (installed ? TABLE_KEYS.map((key) => ({ key, tagged: true })) : []) as T[];
       if (text.includes("version::int as version")) return (installed ? [{ version: 1 }] : []) as T[];
       if (options.onReport) return options.onReport(text, params) as T[];
       throw new Error("unexpected report query");

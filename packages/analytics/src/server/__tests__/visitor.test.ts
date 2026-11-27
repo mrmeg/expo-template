@@ -103,3 +103,15 @@ describe("visitorId", () => {
     expect(visitorId({ ...base, userAgent: UA.safariMac })).not.toBe(id);
   });
 });
+
+describe("parseUserAgent on hostile input", () => {
+  it("stays fast on a header built to make a pattern backtrack", () => {
+    // `Version/` then a long digit run and no `Safari/` made the old Safari
+    // pattern quadratic; this runs for every request to the public endpoint.
+    const hostile = `Mozilla/5.0 Version/${"1".repeat(200_000)}`;
+    const started = Date.now();
+    for (let i = 0; i < 20; i++) parseUserAgent(hostile);
+    expect(Date.now() - started).toBeLessThan(200);
+    expect(parseUserAgent(hostile).browser).toBeNull();
+  });
+});

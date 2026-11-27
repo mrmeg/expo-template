@@ -61,4 +61,20 @@ describe("validateEvent", () => {
     const big = { blob: "x".repeat(LIMITS.propertiesMaxBytes) };
     expect(validateEvent(event({ props: big }), NOW)).toMatchObject({ truncated: true, event: { props: { _truncated: true } } });
   });
+
+  it("rejects an event whose props overflow the stack instead of throwing", () => {
+    let nested: Record<string, unknown> = {};
+    const root = nested;
+    for (let i = 0; i < 200_000; i++) {
+      const next: Record<string, unknown> = {};
+      nested.a = next;
+      nested = next;
+    }
+    let check: ReturnType<typeof validateEvent> | undefined;
+    expect(() => {
+      check = validateEvent(event({ props: root }), NOW);
+    }).not.toThrow();
+    // Either outcome keeps the rest of the batch: rejected, or kept with a marker.
+    expect(check && (check.ok === false || check.truncated === true)).toBe(true);
+  });
 });

@@ -102,7 +102,16 @@ export async function dispatch(
     if (route.enabled && !route.enabled(ctx.config)) continue;
     const params = matchPattern(route.pattern, path);
     if (!params) continue;
-    if (route.access === "admin" && !(await ctx.config.isAdmin?.(request))) return notFound();
+    if (route.access === "admin") {
+      // A throwing admin check stays closed and looks like any other miss.
+      let admin = false;
+      try {
+        admin = (await ctx.config.isAdmin?.(request)) === true;
+      } catch (error) {
+        ctx.reportError(error, "isAdmin");
+      }
+      if (!admin) return notFound();
+    }
     return route.handler(ctx, { request, url, params });
   }
   return notFound();
@@ -126,7 +135,14 @@ export function defaultCountry(request: Request): string | null {
   return value && /^[A-Z]{2}$/.test(value) && value !== "XX" && value !== "T1" ? value : null;
 }
 
-export type OriginCheck = { allowed: true; headers: Record<string, string> } | { allowed: false };
+export type OriginCheck =
+  | {
+      allowed: true;
+      headers: Record<string, string>;
+      /** False when only `"*"` let the request in: its cookies must not identify anyone. */
+      credentials: boolean;
+    }
+  | { allowed: false };
 
 /**
  * Decides whether a POST may write events. No `Origin` (native apps, servers)
@@ -135,12 +151,15 @@ export type OriginCheck = { allowed: true; headers: Record<string, string> } | {
  * `sendBeacon` `text/plain` POST is a CORS simple request: no preflight runs,
  * so the browser would deliver it from any site.
  *
- * A listed origin gets credentials (so `resolveUserId` can read its cookie);
- * `"*"` never does, so an arbitrary site cannot write events as a signed-in user.
+ * A listed origin gets credentials (so `resolveUserId` can read its cookie).
+ * `"*"` never does, and withholding the CORS credentials header is not enough:
+ * the browser still sends the victim's cookies on a simple request, so the
+ * caller must also skip `resolveUserId` when `credentials` is false. Otherwise
+ * any site could write events as a signed-in user.
  */
 export function checkOrigin(request: Request, allowed: AnalyticsServerConfig["allowedOrigins"]): OriginCheck {
   const origin = request.headers.get("origin");
-  if (!origin || origin === "null") return origin ? { allowed: false } : { allowed: true, headers: {} };
+  if (!origin || origin === "null") return origin ? { allowed: false } : { allowed: true, headers: {}, credentials: true };
   let originHost: string | null;
   try {
     originHost = new URL(origin).host.toLowerCase();
@@ -149,11 +168,12 @@ export function checkOrigin(request: Request, allowed: AnalyticsServerConfig["al
   }
   const forwarded = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
   const ownHost = (forwarded || request.headers.get("host") || new URL(request.url).host).toLowerCase();
-  if (originHost === ownHost) return { allowed: true, headers: {} };
-  if (allowed === "*") return { allowed: true, headers: { "access-control-allow-origin": "*" } };
+  if (originHost === ownHost) return { allowed: true, headers: {}, credentials: true };
+  if (allowed === "*") return { allowed: true, headers: { "access-control-allow-origin": "*" }, credentials: false };
   if (allowed?.includes(origin)) {
     return {
       allowed: true,
+      credentials: true,
       headers: { "access-control-allow-origin": origin, "access-control-allow-credentials": "true", vary: "Origin" },
     };
   }
@@ -288,7 +308,14 @@ export function toNodeHandler(server: NodeHandlerTarget) {
     try {
       const rawUrl = req.originalUrl ?? req.url ?? "/";
       const encrypted = (req.socket as { encrypted?: boolean } | undefined)?.encrypted === true;
-      const url = new URL(rawUrl, `${encrypted ? "https" : "http"}://${req.headers.host ?? "localhost"}`);
+      let url: URL;
+      try {
+        url = new URL(rawUrl, `${encrypted ? "https" : "http"}://${req.headers.host ?? "localhost"}`);
+      } catch {
+        // An unparseable Host header: route on the path alone so a request for
+        // one of the host's own routes still reaches it.
+        url = new URL(rawUrl, "http://localhost");
+      }
       if (subpath(url.pathname, server.basePath) === null) {
         if (next) next();
         else await writeNodeResponse(res, notFound());

@@ -6,10 +6,15 @@
  * serialize instead of racing, and it applies only the versions missing from
  * `<prefix>migrations`. Uninstall drops exactly `TABLE_KEYS` and, when install
  * created the schema, the schema once it is empty. Nothing else is touched.
+ *
+ * Ownership is proven, not assumed from a name: install stamps every table it
+ * creates with a table comment (`OWNER_TAG`), and status and uninstall only
+ * see tables carrying it. A host table that merely shares a name, such as its
+ * own `analytics_users`, makes install refuse and is never dropped.
  */
 import { LATEST_VERSION, MIGRATIONS, TABLE_KEYS, resolveNames, type Names, type PlacementOptions } from "./schema";
 import type { SqlClient } from "./sql";
-import { jsonParam } from "./util";
+import { ADVISORY_LOCK_SPACE, jsonParam } from "./util";
 
 export interface InstallResult {
   /** Versions applied by this call; empty when already current. */
@@ -28,6 +33,8 @@ export interface UninstallResult {
   /** Bare names of the tables dropped by this call. */
   dropped: string[];
   droppedSchema: boolean;
+  /** Tables with an owned name that this package did not create; left untouched. */
+  skipped: string[];
 }
 
 export interface InstallStatus {
@@ -36,9 +43,12 @@ export interface InstallStatus {
   version: number;
   latest: number;
   pending: number[];
-  /** Bare names of the owned tables that exist, in `TABLE_KEYS` order. */
+  /** Bare names of the tables this package created that exist, in `TABLE_KEYS` order. */
   tables: string[];
 }
+
+/** Table comment install writes on each table it creates. A constant, never input. */
+export const OWNER_TAG = "expo-analytics";
 
 /** Postgres SQLSTATE for "permission denied". */
 const INSUFFICIENT_PRIVILEGE = "42501";
@@ -48,7 +58,7 @@ function lockKey(names: Names): string {
 }
 
 async function lock(tx: SqlClient, names: Names): Promise<void> {
-  await tx.query("select pg_advisory_xact_lock(hashtext($1)::bigint)", [lockKey(names)]);
+  await tx.query("select pg_advisory_xact_lock($1::int, hashtext($2))", [ADVISORY_LOCK_SPACE, lockKey(names)]);
 }
 
 async function schemaExists(sql: SqlClient, schema: string): Promise<boolean> {
@@ -59,16 +69,38 @@ async function schemaExists(sql: SqlClient, schema: string): Promise<boolean> {
   return rows[0]?.exists === true;
 }
 
-/** Bare names of the owned tables that exist. `to_regclass` follows `search_path` when unqualified. */
-async function existingTables(sql: SqlClient, names: Names): Promise<string[]> {
-  if (names.schema && !(await schemaExists(sql, names.schema))) return [];
+interface TableState {
+  /** Tables this package created (they carry `OWNER_TAG`). */
+  owned: string[];
+  /** Tables with an owned name that something else created. */
+  foreign: string[];
+}
+
+/** Which owned names exist, split by the ownership stamp. `to_regclass` follows `search_path` when unqualified. */
+async function tableState(sql: SqlClient, names: Names): Promise<TableState> {
+  if (names.schema && !(await schemaExists(sql, names.schema))) return { owned: [], foreign: [] };
   const keys = TABLE_KEYS.map((key) => ({ key, name: names.t[key] }));
-  const rows = await sql.query<{ key: string }>(
-    "select r.key from jsonb_to_recordset($1::text::jsonb) as r(key text, name text) where to_regclass(r.name) is not null",
-    [jsonParam(keys)],
+  const rows = await sql.query<{ key: string; tagged: boolean }>(
+    `select r.key, coalesce(obj_description(to_regclass(r.name), 'pg_class') = $2, false) as tagged
+       from jsonb_to_recordset($1::text::jsonb) as r(key text, name text)
+      where to_regclass(r.name) is not null`,
+    [jsonParam(keys), OWNER_TAG],
   );
-  const present = new Set(rows.map((row) => row.key));
-  return TABLE_KEYS.filter((key) => present.has(key)).map((key) => names.bare[key]);
+  const tagged = new Map(rows.map((row) => [row.key, row.tagged === true]));
+  const present = TABLE_KEYS.filter((key) => tagged.has(key));
+  return {
+    owned: present.filter((key) => tagged.get(key)).map((key) => names.bare[key]),
+    foreign: present.filter((key) => !tagged.get(key)).map((key) => names.bare[key]),
+  };
+}
+
+/** Bare names of the tables this package created that exist. */
+async function existingTables(sql: SqlClient, names: Names): Promise<string[]> {
+  return (await tableState(sql, names)).owned;
+}
+
+async function stamp(tx: SqlClient, table: string): Promise<void> {
+  await tx.query(`comment on table ${table} is '${OWNER_TAG}'`);
 }
 
 async function appliedVersions(sql: SqlClient, names: Names): Promise<number[]> {
@@ -102,14 +134,28 @@ export async function install(sql: SqlClient, placement: PlacementOptions = {}):
       createdSchema = true;
     }
 
-    await tx.query(
-      `create table if not exists ${names.t.migrations} (
-        version integer primary key,
-        name text not null,
-        applied_at timestamptz not null default now(),
-        created_schema boolean not null default false
-      )`,
-    );
+    // Refuse to adopt or collide with anything the package did not create: a
+    // same-named host table would otherwise be trusted as the migrations log
+    // or fail a migration halfway with a bare "relation already exists".
+    const before = await tableState(tx, names);
+    if (before.foreign.length > 0) {
+      throw new Error(
+        `expo-analytics: ${before.foreign.join(", ")} already exist${before.foreign.length === 1 ? "s" : ""} and ` +
+          "was not created by this package. Choose another `prefix` or `schema`; nothing was changed.",
+      );
+    }
+
+    if (!before.owned.includes(names.bare.migrations)) {
+      await tx.query(
+        `create table ${names.t.migrations} (
+          version integer primary key,
+          name text not null,
+          applied_at timestamptz not null default now(),
+          created_schema boolean not null default false
+        )`,
+      );
+      await stamp(tx, names.t.migrations);
+    }
 
     const done = new Set(await appliedVersions(tx, names));
     const applied: number[] = [];
@@ -122,6 +168,10 @@ export async function install(sql: SqlClient, placement: PlacementOptions = {}):
         createdSchema,
       ]);
       applied.push(migration.version);
+    }
+    // Every owned table exists once the latest migration has run.
+    if (applied.length > 0) {
+      for (const key of TABLE_KEYS) await stamp(tx, names.t[key]);
     }
 
     const version = Math.max(0, ...done, ...applied);
@@ -137,9 +187,10 @@ export async function uninstall(
   const names = resolveNames(placement);
   return sql.transaction(async (tx) => {
     await lock(tx, names);
-    if (names.schema && !(await schemaExists(tx, names.schema))) return { dropped: [], droppedSchema: false };
+    if (names.schema && !(await schemaExists(tx, names.schema))) return { dropped: [], droppedSchema: false, skipped: [] };
 
-    const present = new Set(await existingTables(tx, names));
+    const state = await tableState(tx, names);
+    const present = new Set(state.owned);
     let createdSchema = false;
     if (present.has(names.bare.migrations)) {
       const rows = await tx.query<{ created: boolean }>(
@@ -176,7 +227,7 @@ export async function uninstall(
         droppedSchema = false;
       }
     }
-    return { dropped, droppedSchema };
+    return { dropped, droppedSchema, skipped: state.foreign };
   });
 }
 

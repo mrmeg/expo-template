@@ -16,7 +16,7 @@ import type { StoreContext } from "./config";
 import type { SqlClient } from "./sql";
 import { upsertUser, validPlatform } from "./users";
 import { createSaltCache, deviceClass, parseUserAgent, visitorId } from "./visitor";
-import { asUuid, cleanText, isPlainObject, jsonParam, sameHost } from "./util";
+import { ADVISORY_LOCK_SPACE, asUuid, cleanText, isPlainObject, jsonParam, sameHost } from "./util";
 
 const RESERVED_NAMES: ReadonlySet<string> = new Set(Object.values(RESERVED_EVENTS));
 const VIEW_EVENTS: ReadonlySet<string> = new Set([RESERVED_EVENTS.pageview, RESERVED_EVENTS.screen]);
@@ -67,8 +67,20 @@ function isOversized(props: Record<string, unknown>): boolean {
   return Buffer.byteLength(jsonParam(props), "utf8") > LIMITS.propertiesMaxBytes;
 }
 
-/** Validates one untrusted wire event. */
+/**
+ * Validates one untrusted wire event. Never throws: anything the checks choke
+ * on (for example props nested deep enough to overflow the stack) rejects that
+ * one event, so it cannot take the rest of the batch with it.
+ */
 export function validateEvent(raw: unknown, now: Date): EventCheck {
+  try {
+    return checkEvent(raw, now);
+  } catch {
+    return { ok: false, reason: "invalid event" };
+  }
+}
+
+function checkEvent(raw: unknown, now: Date): EventCheck {
   if (!isPlainObject(raw)) return { ok: false, reason: "not an object" };
   const id = asUuid(raw.id);
   if (!id) return { ok: false, reason: "invalid id" };
@@ -286,8 +298,9 @@ export async function ingestBatch(ctx: StoreContext, input: IngestInput): Promis
 async function assignSessions(tx: SqlClient, ctx: StoreContext, batch: Batch): Promise<void> {
   const pending = batch.events.filter((event) => event.sessionId === null);
   if (pending.length === 0) return;
-  await tx.query("select pg_advisory_xact_lock(hashtext($1)::bigint)", [
-    `expo-analytics:session:${ctx.names.t.sessions}:${ctx.appId}:${batch.anonymousId}`,
+  await tx.query("select pg_advisory_xact_lock($1::int, hashtext($2))", [
+    ADVISORY_LOCK_SPACE,
+    `session:${ctx.names.t.sessions}:${ctx.appId}:${batch.anonymousId}`,
   ]);
   const rows = await tx.query<{ id: string; last_seen_at: Date | string }>(
     `select id, last_seen_at from ${ctx.names.t.sessions}

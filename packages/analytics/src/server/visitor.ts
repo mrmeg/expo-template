@@ -21,9 +21,19 @@ function utcDay(now: Date): string {
 }
 
 /**
+ * Deletes every salt but today's. Nothing reads an older salt, and while one
+ * exists, anyone who can read the database can test a guessed IP and user
+ * agent against that day's visitor ids. Also called from `prune`, so the last
+ * salt does not outlive cookieless traffic stopping.
+ */
+export async function pruneSalts(sql: SqlClient, names: Names, now: Date): Promise<void> {
+  await sql.query(`delete from ${names.t.salts} where day < $1::date`, [utcDay(now)]);
+}
+
+/**
  * Today's salt, created on first use. `on conflict do nothing` then a read
- * makes concurrent first requests agree on one salt. Rows older than yesterday
- * are deleted on the way, which is what makes earlier ids unlinkable.
+ * makes concurrent first requests agree on one salt. Earlier days' salts are
+ * deleted on the way, which is what makes earlier ids unlinkable.
  */
 export async function getDailySalt(sql: SqlClient, names: Names, now: Date): Promise<string> {
   const day = utcDay(now);
@@ -32,7 +42,7 @@ export async function getDailySalt(sql: SqlClient, names: Names, now: Date): Pro
     randomBytes(32).toString("hex"),
   ]);
   const rows = await sql.query<{ salt: string }>(`select salt from ${names.t.salts} where day = $1::date`, [day]);
-  await sql.query(`delete from ${names.t.salts} where day < $1::date - 1`, [day]);
+  await pruneSalts(sql, names, now);
   const salt = rows[0]?.salt;
   if (!salt) throw new Error("expo-analytics: could not read the daily salt");
   return salt;
@@ -164,7 +174,9 @@ function detectBrowser(ua: string): string | null {
   if (/\bSamsungBrowser\//.test(ua)) return "Samsung Internet";
   if (/\bFirefox\/|\bFxiOS\//.test(ua)) return "Firefox";
   if (/\bChrome\/|\bCriOS\/|\bChromium\//.test(ua)) return "Chrome";
-  if (/\bVersion\/[\d.]+.*\bSafari\//.test(ua)) return "Safari";
+  // Two linear tests, not one pattern with `.*` between them: that form
+  // backtracks quadratically on a crafted header, and this runs on a public route.
+  if (/\bSafari\//.test(ua) && /\bVersion\/\d/.test(ua)) return "Safari";
   return null;
 }
 
@@ -176,12 +188,17 @@ function detectDevice(ua: string, os: string | null): DeviceClass | null {
   return null;
 }
 
+const USER_AGENT_MAX_LENGTH = 1024;
+
 export function parseUserAgent(ua: string | null | undefined): UserAgentInfo {
   if (typeof ua !== "string" || ua.trim().length === 0) {
     return { device: null, browser: null, os: null, isBot: false };
   }
-  const os = detectOs(ua);
-  return { device: detectDevice(ua, os), browser: detectBrowser(ua), os, isBot: BOT_PATTERN.test(ua) };
+  // Real user agents are a few hundred characters; the cap bounds the work an
+  // unauthenticated caller can ask of the patterns below.
+  const head = ua.slice(0, USER_AGENT_MAX_LENGTH);
+  const os = detectOs(head);
+  return { device: detectDevice(head, os), browser: detectBrowser(head), os, isBot: BOT_PATTERN.test(head) };
 }
 
 /**

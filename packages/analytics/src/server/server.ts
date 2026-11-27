@@ -35,7 +35,7 @@ import { recordRevenueEvents, type RevenueEventInput } from "./revenue";
 import { resolveNames } from "./schema";
 import { upsertUser, validPlatform, validUserId } from "./users";
 import { API_ROUTES, createMetrics, validateMetricsConfig, type AnalyticsMetrics } from "./queryApi";
-import { parseUserAgent } from "./visitor";
+import { parseUserAgent, pruneSalts } from "./visitor";
 import { cleanText, hostOf, isPlainObject, toDate } from "./util";
 
 async function postEvents(ctx: AnalyticsContext, { request }: { request: Request }): Promise<Response> {
@@ -56,7 +56,9 @@ async function postEvents(ctx: AnalyticsContext, { request }: { request: Request
 
   let userId: string | null = null;
   try {
-    userId = validUserId(await ctx.config.resolveUserId?.(request));
+    // A request admitted only by `allowedOrigins: "*"` may carry a victim's
+    // cookies from any site, so it is never attributed to a user.
+    if (origin.credentials) userId = validUserId(await ctx.config.resolveUserId?.(request));
   } catch (error) {
     // Keep the events, unattributed, rather than lose them to an auth hiccup.
     ctx.reportError(error, "resolveUserId");
@@ -296,6 +298,8 @@ export function createAnalyticsServer(config: AnalyticsServerConfig): AnalyticsS
       );
       return Number(rows[0]?.n ?? 0);
     };
+    // Housekeeping that must not depend on cookieless traffic arriving.
+    await pruneSalts(ctx.sql, names, ctx.now());
     return { events: await count(names.t.events, "occurred_at"), sessions: await count(names.t.sessions, "last_seen_at") };
   }
 

@@ -240,7 +240,7 @@ export const MIGRATIONS: readonly Migration[] = [
       `create index ${ix("revenue_events_app_user_time")} on ${t.revenueEvents} (app_id, user_id, occurred_at)`,
       `create index ${ix("revenue_events_app_sub_time")} on ${t.revenueEvents} (app_id, provider_subscription_id, occurred_at)`,
 
-      // Daily salts for cookieless visitor ids. Only today's and yesterday's
+      // Daily salts for cookieless visitor ids. Only today's
       // rows exist; deleting a salt makes that day's ids unlinkable.
       `create table ${t.salts} (
         day date primary key,

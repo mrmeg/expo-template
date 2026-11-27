@@ -212,6 +212,9 @@ export async function runCli(
     const result = await uninstall(connection.sql, placement, { cascade: args.cascade });
     io.stdout(result.dropped.length > 0 ? `Dropped ${result.dropped.join(", ")}.` : `Nothing to drop on ${where}.`);
     if (result.droppedSchema) io.stdout(`Dropped schema ${args.schema}.`);
+    if (result.skipped.length > 0) {
+      io.stdout(`Left ${result.skipped.join(", ")} alone: not created by expo-analytics.`);
+    }
     return 0;
   } catch (error) {
     io.stderr(`expo-analytics: ${error instanceof Error ? error.message : String(error)}`);

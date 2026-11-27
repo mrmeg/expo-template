@@ -79,7 +79,7 @@ describe("dashboard stylesheet", () => {
 function stubSql(state: { installed: boolean; onReport?: () => unknown[] }): SqlClient {
   return {
     async query<T>(text: string): Promise<T[]> {
-      if (text.includes("to_regclass")) return (state.installed ? TABLE_KEYS.map((key) => ({ key })) : []) as T[];
+      if (text.includes("to_regclass")) return (state.installed ? TABLE_KEYS.map((key) => ({ key, tagged: true })) : []) as T[];
       if (text.includes("version::int as version")) return (state.installed ? [{ version: 1 }] : []) as T[];
       if (state.onReport) return state.onReport() as T[];
       throw new Error("report query failed");

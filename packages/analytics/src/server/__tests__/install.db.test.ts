@@ -56,7 +56,7 @@ describeDb("install", (ctx) => {
     );
     expect(rows.map((row) => row.table_name)).toEqual(["host_table"]);
 
-    await expect(uninstall(ctx.sql)).resolves.toEqual({ dropped: [], droppedSchema: false });
+    await expect(uninstall(ctx.sql)).resolves.toEqual({ dropped: [], droppedSchema: false, skipped: [] });
     await expect(install(ctx.sql)).resolves.toMatchObject({ applied: [1] });
     expect((await status(ctx.sql)).installed).toBe(true);
   });
@@ -95,7 +95,7 @@ describeDb("install into a dedicated schema", (ctx) => {
 
   it("reports a missing schema as not installed", async () => {
     await expect(status(ctx.sql, { schema })).resolves.toMatchObject({ installed: false, tables: [] });
-    await expect(uninstall(ctx.sql, { schema })).resolves.toEqual({ dropped: [], droppedSchema: false });
+    await expect(uninstall(ctx.sql, { schema })).resolves.toEqual({ dropped: [], droppedSchema: false, skipped: [] });
   });
 
   it("creates the schema and drops it on uninstall", async () => {
@@ -119,7 +119,7 @@ describeDb("install into a dedicated schema", (ctx) => {
     await install(ctx.sql, { schema });
     await ctx.raw.unsafe(`create table "${schema}".host_table (id integer)`);
     const result = await uninstall(ctx.sql, { schema });
-    expect(result).toEqual({ dropped: expect.arrayContaining(["analytics_events"]), droppedSchema: false });
+    expect(result).toEqual({ dropped: expect.arrayContaining(["analytics_events"]), droppedSchema: false, skipped: [] });
     const rows = await ctx.raw.unsafe("select table_name from information_schema.tables where table_schema = $1", [
       schema,
     ]);

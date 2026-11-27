@@ -97,6 +97,21 @@ describe("createAnalyticsServer.handle", () => {
     expect(any?.headers.get("access-control-allow-credentials")).toBeNull();
   });
 
+  it("never identifies a user on a request only \"*\" let in", async () => {
+    // A browser sends the victim's cookies on a simple cross-origin POST, so
+    // asking the host who this is would let any site write as that user.
+    const body = JSON.stringify({ events: [] });
+    const resolveUserId = jest.fn(() => "victim");
+
+    await server({ allowedOrigins: "*", resolveUserId }).handle(post("/analytics/e", body, { origin: ORIGIN }));
+    expect(resolveUserId).not.toHaveBeenCalled();
+
+    await server({ allowedOrigins: [ORIGIN], resolveUserId }).handle(post("/analytics/e", body, { origin: ORIGIN }));
+    await server({ allowedOrigins: "*", resolveUserId }).handle(post("/analytics/e", body, { origin: "https://api.example.com" }));
+    await server({ allowedOrigins: "*", resolveUserId }).handle(post("/analytics/e", body));
+    expect(resolveUserId).toHaveBeenCalledTimes(3);
+  });
+
   it("answers CORS preflight per allowedOrigins", async () => {
     const preflight = (s: ReturnType<typeof server>) =>
       s.handle(
@@ -170,6 +185,23 @@ describe("dispatch", () => {
   it("answers 404 to non-admins, by default and when isAdmin says no", async () => {
     expect((await dispatch(context(), [adminRoute], "/analytics", request))?.status).toBe(404);
     expect((await dispatch(context(() => false), [adminRoute], "/analytics", request))?.status).toBe(404);
+  });
+
+  it("stays closed and reports when the admin check throws", async () => {
+    const reportError = jest.fn();
+    const ctx = {
+      ...context(() => {
+        throw new Error("session store down");
+      }),
+      reportError,
+    };
+    expect((await dispatch(ctx, [adminRoute], "/analytics", request))?.status).toBe(404);
+    expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: "session store down" }), "isAdmin");
+  });
+
+  it("requires the admin check to return exactly true", async () => {
+    const truthy = context((() => "yes") as unknown as AnalyticsServerConfig["isAdmin"]);
+    expect((await dispatch(truthy, [adminRoute], "/analytics", request))?.status).toBe(404);
   });
 
   it("runs admin routes for admins with decoded params", async () => {

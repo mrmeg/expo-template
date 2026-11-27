@@ -93,14 +93,19 @@ Seven tables, each named `<prefix><name>`, and their indexes (named
 | `analytics_users` | One row per signed-in user the server has seen: first and last seen, `excluded`, traits, first-touch acquisition, resolved `channel` |
 | `analytics_link_clicks` | One row per hit on a tracked link (`/go/:channel`) |
 | `analytics_revenue_events` | Append-only money ledger: subscriptions and one-time purchases from any provider |
-| `analytics_salts` | Daily salts for cookieless visitor ids; only today's and yesterday's rows exist |
+| `analytics_salts` | Daily salts for cookieless visitor ids; only today's row exists |
 
 No foreign key references a host table: `user_id` is your user id stored as
 text. Every row carries `app_id`, so several apps can share one set of tables.
 
 Uninstall drops exactly these seven tables (in reverse creation order, with
 `restrict`), and, in the dedicated-schema placement, the schema too if install
-created it and it is then empty. Nothing else is touched. If one of your own
+created it and it is then empty. Nothing else is touched. Ownership is proven
+by a stamp, not by name: install writes the table comment `expo-analytics` on
+each table it creates, and uninstall drops only tables carrying it. A table of
+yours that happens to share a name (your own `analytics_users`, say) makes
+install refuse with nothing changed, and uninstall reports it under `skipped`
+and leaves it alone. If one of your own
 views or foreign keys depends on a table, uninstall fails and names it; pass
 `cascade` to drop those dependents as well.
 
@@ -219,7 +224,10 @@ wire; `resolveUserId` decides it from the request (a session cookie, a bearer
 token). Requests without an `Origin` header (native apps, servers) and
 same-origin requests may always post; a cross-origin browser request only when
 its origin is listed in `allowedOrigins`. A listed origin gets credentials so
-its cookie reaches `resolveUserId`; `"*"` never does.
+its cookie reaches `resolveUserId`. A request admitted only by `"*"` is never
+attributed: `resolveUserId` is not called for it, because a browser still sends
+the visitor's cookies on such a request and any site could otherwise write
+events as a signed-in user. Use `"*"` only for anonymous traffic.
 
 Behind a proxy that does not set `x-forwarded-for` or `x-real-ip`, or with no
 proxy at all, pass `clientIp`: without an IP, every cookieless visitor with the
@@ -717,8 +725,9 @@ Never stored:
 
 Cookieless visitor ids: `sha256(daily salt, app id, IP, user agent)`, cut to 32
 hex characters. The salt is random and created per UTC day in
-`analytics_salts`; each time the server reads the day's salt it deletes every
-salt older than yesterday. An id therefore links one visitor within a day and
+`analytics_salts`; each time the server reads the day's salt, and each time
+`prune` runs, it deletes every earlier salt. An id therefore links one visitor
+within a day and
 never across days, and once a salt is gone nobody can test an IP and user agent
 against that day's ids.
 

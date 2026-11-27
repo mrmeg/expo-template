@@ -291,7 +291,8 @@ describeDb("ingest", (ctx) => {
       await send({ context: { platform: "web" }, events: [pageview("/landing")] }, { "user-agent": ua });
       expect(await visitorId()).not.toBe(first);
       const salts = await ctx.raw.unsafe("select to_char(day, 'YYYY-MM-DD') as day from analytics_salts order by day");
-      expect(salts.map((row) => row.day)).toEqual(["2026-06-02", "2026-06-03"]);
+      // Yesterday's salt is gone, so yesterday's ids can no longer be tested against a guess.
+      expect(salts.map((row) => row.day)).toEqual(["2026-06-03"]);
     });
 
     it("opens one session for concurrent batches from one visitor", async () => {

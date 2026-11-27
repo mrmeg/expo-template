@@ -25,6 +25,7 @@ function fakeConnection(): Connection & { statements: string[]; closed: boolean 
       if (text.includes("to_regclass")) {
         return ["migrations", "events", "sessions", "users", "linkClicks", "revenueEvents", "salts"].map((key) => ({
           key,
+          tagged: true,
         })) as T[];
       }
       if (text.includes("select version")) return [{ version: 1 }] as T[];
