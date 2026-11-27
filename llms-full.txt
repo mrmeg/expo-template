@@ -27,10 +27,11 @@ Sections, in order:
 5. @mrmeg/expo-ui Component Docs — one doc per component family: rules, gotchas, and minimal examples (each with its exported names, use-for and instead-of lines)
 6. @mrmeg/expo-media Usage — import paths, required app setup, media contracts, client hooks, server handlers, processing presets
 7. @mrmeg/expo-purchases Usage — import paths, RevenueCat client and provider setup, entitlement resolution, gating, pure webhook and ledger helpers, identifier contract
-8. @mrmeg/eslint-plugin-expo-ui — design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting
-9. @mrmeg/expo-metro — withBundleOptimizations: tree-shaking env flags, zod locale stub, composing with Sentry and Reanimated wrappers, opting out
-10. Expo Server Guide — server output config, API routes, data loaders, middleware, server entries, replication checklist
-11. Examples Index — fetchable raw URLs for demo routes, screen templates, component source, form wrappers, server stack
+8. @mrmeg/expo-analytics Usage — import paths, server setup and mounting, web and native trackers, identity and admin rules, revenue rows, reports and query API
+9. @mrmeg/eslint-plugin-expo-ui — design-system ESLint rules, CLI, settings, style contracts, adopting the plugin in another project, troubleshooting
+10. @mrmeg/expo-metro — withBundleOptimizations: tree-shaking env flags, zod locale stub, composing with Sentry and Reanimated wrappers, opting out
+11. Expo Server Guide — server output config, API routes, data loaders, middleware, server entries, replication checklist
+12. Examples Index — fetchable raw URLs for demo routes, screen templates, component source, form wrappers, server stack
 
 ---
 
@@ -55,6 +56,7 @@ Source of truth before editing another project:
 | UI package setup, components, theming | `packages/ui/README.md` |
 | Media package setup, processing, server handlers | `packages/media/README.md` |
 | Purchases package: RevenueCat client, entitlement store, gating, webhook helpers | `packages/purchases/README.md` |
+| Analytics package: trackers, ingest server, Postgres tables, metrics, dashboard | `packages/analytics/README.md` |
 | Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |
@@ -72,7 +74,7 @@ same change.
 A Bun-managed Expo app: Expo Router, server-rendered web output, TypeScript strict
 mode, React Query, Zustand, optional Clerk or Cognito auth
 (`EXPO_PUBLIC_AUTH_PROVIDER` picks when both are configured), optional Stripe
-billing, optional S3/R2 media, optional Sentry, and two workspace packages:
+billing, optional S3/R2 media, optional Sentry, and these workspace packages:
 
 - `@mrmeg/expo-ui` from `packages/ui`: design tokens, theme state, reusable
   components, animation/haptic helpers, global UI state.
@@ -81,10 +83,15 @@ billing, optional S3/R2 media, optional Sentry, and two workspace packages:
 - `@mrmeg/expo-purchases` from `packages/purchases`: RevenueCat client,
   entitlement store, paywall gating, pure webhook and ledger helpers. Not used
   by the template app itself.
+- `@mrmeg/expo-analytics` from `packages/analytics`: self-hosted first-party
+  analytics (web and native trackers, ingest server, installable Postgres
+  tables, product/retention/acquisition/web/revenue reports, admin dashboard).
+  Not used by the template app itself.
 
 App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
 Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
-`packages/media`; reusable purchases and entitlement code in `packages/purchases`.
+`packages/media`; reusable purchases and entitlement code in `packages/purchases`;
+reusable analytics tracking, tables and metrics in `packages/analytics`.
 
 ## LLM Use Rules
 
@@ -3324,6 +3331,124 @@ the RevenueCat dashboard exactly. `app_user_id` is the app's auth subject
 `providerSubscriptionId` (`rc:<original_transaction_id>`), so store product ids
 are cosmetic to the backend. See README "Identifier Contract", "Setup Checklist
 (human)", and "Store Review Checklist".
+
+---
+
+<!-- Source: packages/analytics/LLM_USAGE.md -->
+<!-- Raw: https://raw.githubusercontent.com/mrmeg/expo-template/main/packages/analytics/LLM_USAGE.md -->
+
+# LLM Usage: @mrmeg/expo-analytics
+
+## Imports
+
+| Subpath | Contents |
+|---|---|
+| `@mrmeg/expo-analytics` | `createTracker` (core; transport and storage injected), `EVENT_NAME_PATTERN`, `LIMITS`, `RESERVED_EVENTS`, wire types |
+| `/web` | `createWebTracker` (browsers) |
+| `/native` | `createNativeTracker` (React Native; the only entry that imports `react-native`) |
+| `/metrics` | report types, pure metric functions, `resolveDateRange`, `toCsv`, `formatRateCell` / `formatCents` / `formatCount` / `formatDuration` |
+| `/server` | `createAnalyticsServer`, `toNodeHandler`, `fromPostgresJs`, `fromPg`, `install`, `uninstall`, `status`, `resolveNames`, report functions |
+
+`/server` needs Node or Bun (`node:crypto`, `Buffer`): never import it into an
+app bundle. The package ships no Postgres driver; the host passes its own
+`postgres` or `pg` client through an adapter. `react-native` is the only peer,
+optional, used by `/native` alone.
+
+## Setup in four steps
+
+1. Server object, once, in server code:
+
+```ts
+import { createAnalyticsServer, fromPostgresJs } from "@mrmeg/expo-analytics/server";
+import postgres from "postgres";
+
+export const analytics = createAnalyticsServer({
+  sql: fromPostgresJs(postgres(process.env.DATABASE_URL!)),   // or fromPg(new Pool(...))
+  appId: "my-app",
+  resolveUserId: async (request) => (await verifySession(request))?.userId ?? null,
+  isAdmin: async (request) => (await verifySession(request))?.role === "admin",
+  metrics: { timezone: "UTC", activation: { event: "first_project_created", withinDays: 7 } },
+});
+```
+
+2. Tables: `await analytics.install()` on boot (idempotent, advisory-locked,
+   applies pending migrations), or `npx expo-analytics install` in a deploy
+   step. Default placement: tables `analytics_*` in the connection's
+   `search_path`; `schema: "analytics"` for a dedicated schema. `uninstall()`
+   drops exactly the seven tables; nothing references host tables.
+
+3. Mount under `basePath` (default `/analytics`). `handle(request)` returns a
+   `Response` or `null` for paths outside it:
+   - Express: `app.use(toNodeHandler(analytics))`.
+   - Expo Router: `app/analytics/[...path]+api.ts` exporting `GET`, `HEAD`,
+     `POST`, `OPTIONS`, plus `app/analytics/index+api.ts` exporting `GET` for
+     the dashboard at `/analytics`; each calls
+     `(await analytics.handle(request)) ?? new Response("Not found", { status: 404 })`.
+   - Next.js: `app/analytics/[[...path]]/route.ts` with `runtime = "nodejs"`.
+
+4. Client tracker, once per platform (a `.native.ts` file beside the web one):
+
+```ts
+// web: cookieless unless persist: true; pageviews automatic
+export const tracker = createWebTracker<AppEvents>({ endpoint: "https://app.example.com/analytics/e" });
+
+// native: storage keeps the anonymous id and queue; AppState drives sessions
+export const tracker = createNativeTracker<AppEvents>({
+  endpoint: "https://app.example.com/analytics/e",
+  storage: AsyncStorage,
+  headers: async () => ({ Authorization: `Bearer ${await getToken()}` }),
+});
+```
+
+On native, record routes with `tracker.screen(usePathname())` in a root-layout
+effect. Web pageviews come from the History API already.
+
+## Rules that are easy to get wrong
+
+- Never send a user id from the client. There is no field for it: the server
+  attributes events with `resolveUserId(request)` from your session cookie or
+  bearer token (`headers` on the tracker). Cross-origin web posts need
+  `allowedOrigins`.
+- The dashboard and every `/api/*` route answer 404 until `isAdmin` returns true
+  for the request. Supply `isAdmin`; there is no other switch.
+- Event names are lowercase snake case, `^[a-z][a-z0-9_]*$`, at most 64
+  characters. `$` names are reserved (`$pageview`, `$screen`, `$session_start`,
+  `$session_end`). Props: flat JSON, at most 50 keys and 4 KB.
+- Event maps and their props are `type` aliases, never `interface`s (an interface
+  does not satisfy the `Record<string, ...>` constraint). `undefined` props mean
+  the event takes none.
+- Server-side events: `analytics.track({ name, userId, props, id })`. Users:
+  `analytics.identify(userId, { createdAt, traits, excluded })`; pass
+  `createdAt` for existing users so cohorts use the real sign-up date, and
+  `excluded: true` for staff and test accounts. `track` never creates a user row.
+- Revenue: `analytics.recordRevenueEvents(rows)`, idempotent on (`provider`,
+  `providerEventId`, `eventType`). A paid row counts toward MRR only with a
+  `providerSubscriptionId` and a `periodEnd`; `@mrmeg/expo-purchases`
+  `buildLedgerRows` rows have no period, so spread in
+  `periodStart: event.purchasedAtMs, periodEnd: event.expirationAtMs`. Stripe
+  timestamps are seconds: multiply by 1000. Only `environment: "production"` rows
+  count.
+- Writing your own SQL against the tables: bind arrays and objects as one JSON
+  string cast `$1::text::jsonb`, never `$1::jsonb` (postgres.js double-encodes
+  it). Every row has `app_id`; filter on it.
+- Sign-out: `await tracker.reset()` before dropping the auth token. Consent:
+  `tracker.setEnabled(false)` drops the queue and sends nothing.
+- Behind no proxy (no `x-forwarded-for` / `x-real-ip`), pass `clientIp`, or
+  every cookieless visitor with one user agent hashes to one id.
+
+## Reports
+
+`analytics.metrics.overview|product|acquisition|web|revenue(range?)`,
+`.retention(range?, { mode })`, `.funnels(range?, { key })`, `.events(params)`.
+A range is `{ from, to }` inclusive `YYYY-MM-DD` in `metrics.timezone`, default
+the last 30 days, at most 400. HTTP: `GET <basePath>/api/<report>?from&to`, `?format=csv`
+(with `?table=` where a report has several), `GET <basePath>/api/events?from&to&name&user&limit&before`.
+409 `{ error: "not_installed" }` before install; 400 for bad input.
+
+Definitions (actor and stitching, active users, retention modes and maturity,
+funnels, channel resolution, web, MRR normalization, trial conversion, churn)
+are in the README's Metric definitions section; the dashboard shows each
+report's `notes`.
 
 ---
 

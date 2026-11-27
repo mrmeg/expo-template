@@ -13,7 +13,7 @@
  * approved is the file `npm publish` uploads.
  *
  * Usage:
- *   node scripts/check-package-consumer.mjs <ui|media|purchases|lint|metro> [--tarball <path>]
+ *   node scripts/check-package-consumer.mjs <analytics|lint|media|metro|purchases|ui> [--tarball <path>]
  */
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -630,6 +630,133 @@ const METRO_RUNTIME_CJS = [
 ].join("\n");
 
 /**
+ * Plain-Node checks of every analytics entry point from the packed tarball, with
+ * no peers and no database. `./native` reaches `react-native` (Flow source that
+ * needs a bundler), so it is checked by resolution only, as the UI runtime check
+ * does for its React Native subpaths; the typed fixture compiles against it.
+ */
+const ANALYTICS_RUNTIME_MJS = [
+  "import assert from 'node:assert/strict';",
+  "import { statSync } from 'node:fs';",
+  "import { fileURLToPath } from 'node:url';",
+  "",
+  "const root = await import('@mrmeg/expo-analytics');",
+  "const web = await import('@mrmeg/expo-analytics/web');",
+  "const metrics = await import('@mrmeg/expo-analytics/metrics');",
+  "const server = await import('@mrmeg/expo-analytics/server');",
+  "",
+  "// `.`: the core tracker batches into one POST through an injected transport.",
+  "const sent = [];",
+  "const tracker = root.createTracker({",
+  "  endpoint: 'https://example.com/analytics/e',",
+  "  platform: 'web',",
+  "  transport: async (request) => {",
+  "    sent.push(JSON.parse(request.body));",
+  "    return { status: 200 };",
+  "  },",
+  "});",
+  "tracker.track('signup_completed', { plan: 'pro' });",
+  "await tracker.flush();",
+  "await tracker.shutdown();",
+  "assert.equal(sent.length, 1);",
+  "assert.equal(sent[0].events[0].name, 'signup_completed');",
+  "assert.equal(sent[0].context.platform, 'web');",
+  "assert.ok(root.EVENT_NAME_PATTERN.test('signup_completed'));",
+  "",
+  "// `./web`: outside a browser the tracker is inert, and importing it touched nothing.",
+  "const inert = web.createWebTracker({ endpoint: 'https://example.com/analytics/e' });",
+  "inert.track('page_ready');",
+  "await inert.flush();",
+  "assert.equal(typeof inert.destroy, 'function');",
+  "",
+  "// `./native`: resolves to a shipped file (loading it needs react-native and a bundler).",
+  "const nativeEntry = fileURLToPath(import.meta.resolve('@mrmeg/expo-analytics/native'));",
+  "assert.ok(nativeEntry.endsWith('/dist/native/index.js'), nativeEntry);",
+  "assert.ok(statSync(nativeEntry).isFile());",
+  "",
+  "// `./metrics`: pure functions.",
+  "const range = metrics.resolveDateRange({ from: '2026-01-01', to: '2026-01-31' }, '2026-02-15');",
+  "assert.deepEqual(range, { ok: true, range: { from: '2026-01-01', to: '2026-01-31' } });",
+  "assert.equal(metrics.toCsv([{ a: 1, b: '=x' }], ['a', 'b']), `${metrics.CSV_BOM}a,b\\r\\n1,'=x\\r\\n`);",
+  "assert.equal(metrics.rateCell(1, 4).rate, 0.25);",
+  "",
+  "// `./server`: names and dispatch, against a client that fails if it is ever queried.",
+  "assert.equal(server.resolveNames().t.events, '\"analytics_events\"');",
+  "assert.equal(server.resolveNames({ schema: 'analytics' }).t.users, '\"analytics\".\"analytics_users\"');",
+  "const noDatabase = {",
+  "  query: async () => { throw new Error('the smoke must not reach a database'); },",
+  "  transaction: async () => { throw new Error('the smoke must not reach a database'); },",
+  "};",
+  "const analytics = server.createAnalyticsServer({ sql: noDatabase, appId: 'smoke' });",
+  "assert.equal(analytics.basePath, '/analytics');",
+  "assert.equal(await analytics.handle(new Request('https://example.com/other')), null);",
+  "assert.equal((await analytics.handle(new Request('https://example.com/analytics/nope'))).status, 404);",
+  "assert.equal(typeof server.toNodeHandler(analytics), 'function');",
+  "console.log('analytics consumer: ., ./web, ./native, ./metrics and ./server load and work in Node');",
+  "",
+].join("\n");
+
+/** Type-level use of every entry point, including `./native` against the installed react-native. */
+const ANALYTICS_INDEX_TS = [
+  "import postgres from 'postgres';",
+  "import { createTracker, type Tracker } from '@mrmeg/expo-analytics';",
+  "import { createWebTracker } from '@mrmeg/expo-analytics/web';",
+  "import { createNativeTracker, type KeyValueStorage } from '@mrmeg/expo-analytics/native';",
+  "import { resolveDateRange, type ProductReport, type RateCell } from '@mrmeg/expo-analytics/metrics';",
+  "import {",
+  "  createAnalyticsServer,",
+  "  fromPostgresJs,",
+  "  toNodeHandler,",
+  "  type AnalyticsServer,",
+  "  type RevenueEventInput,",
+  "} from '@mrmeg/expo-analytics/server';",
+  "",
+  "// Event maps and their props are type aliases: an interface has no index signature.",
+  "type Events = {",
+  "  signup_completed: { plan: string };",
+  "  app_opened: undefined;",
+  "};",
+  "",
+  "const storage: KeyValueStorage = {",
+  "  getItem: async () => null,",
+  "  setItem: async () => {},",
+  "  removeItem: async () => {},",
+  "};",
+  "const native = createNativeTracker<Events>({ endpoint: 'https://example.com/analytics/e', storage });",
+  "native.track('signup_completed', { plan: 'pro' });",
+  "native.track('app_opened');",
+  "// @ts-expect-error props are required for signup_completed",
+  "native.track('signup_completed');",
+  "// @ts-expect-error unknown event name",
+  "native.track('signup_complete');",
+  "",
+  "const web = createWebTracker<Events>({ endpoint: '/analytics/e', persist: true });",
+  "const core: Tracker<Events> = createTracker<Events>({ endpoint: 'https://example.com/analytics/e', platform: 'ios' });",
+  "",
+  "const server: AnalyticsServer = createAnalyticsServer({",
+  "  sql: fromPostgresJs(postgres('postgres://localhost/app')),",
+  "  appId: 'smoke',",
+  "  resolveUserId: async () => null,",
+  "  isAdmin: async () => false,",
+  "});",
+  "const middleware = toNodeHandler(server);",
+  "const row: RevenueEventInput = {",
+  "  userId: 'u1',",
+  "  provider: 'stripe',",
+  "  eventType: 'purchased',",
+  "  providerEventId: 'evt_1',",
+  "  amountCents: 999,",
+  "  occurredAt: Date.now(),",
+  "};",
+  "",
+  "const resolution = resolveDateRange(undefined, '2026-01-31');",
+  "const cell: RateCell | null = null;",
+  "const report: ProductReport | null = null;",
+  "export { web, core, middleware, row, resolution, cell, report };",
+  "",
+].join("\n");
+
+/**
  * Per-package fixtures. `files` receives `{ tarball, extraTarballs, rootPackage,
  * manifest, peerDependencies }` and returns the fixture's files keyed by relative
  * path. `steps` run after `bun install` in fixture order. `extraPackages` maps a
@@ -1115,10 +1242,107 @@ const PACKAGES = {
       },
     ],
   },
+  analytics: {
+    dir: "packages/analytics",
+    packageName: "@mrmeg/expo-analytics",
+    exportChecks: [
+      { entrypoint: "@mrmeg/expo-analytics", key: "." },
+      { entrypoint: "@mrmeg/expo-analytics/web", key: "./web" },
+      { entrypoint: "@mrmeg/expo-analytics/native", key: "./native" },
+      { entrypoint: "@mrmeg/expo-analytics/metrics", key: "./metrics" },
+      { entrypoint: "@mrmeg/expo-analytics/server", key: "./server" },
+    ],
+    requiredDocs: [
+      "dist/cli/index.js",
+      "README.md",
+      "CHANGELOG.md",
+      "LICENSE",
+      "LLM_USAGE.md",
+      "llms.txt",
+      "llms-full.md",
+    ],
+    fixtures: [
+      {
+        // Peer-free install: every entry but `./native` loads without React
+        // Native, and the bin runs from the consumer's `.bin`.
+        prefix: "expo-analytics-minimal-consumer-",
+        install: ["install", "--omit", "peer"],
+        files: ({ tarball }) => ({
+          "package.json": json({
+            name: "expo-analytics-minimal-consumer-smoke",
+            private: true,
+            type: "module",
+            dependencies: {
+              "@mrmeg/expo-analytics": tarball,
+            },
+          }),
+          "runtime.mjs": ANALYTICS_RUNTIME_MJS,
+        }),
+        steps: [
+          { kind: "assert-surface" },
+          {
+            kind: "run",
+            command: "node",
+            args: ["runtime.mjs"],
+            expectStdout: "analytics consumer: ., ./web, ./native, ./metrics and ./server load and work in Node",
+          },
+          {
+            // Through the `.bin` link: the shebang, the executable bit and the
+            // bin entry all have to be right for this to print the usage.
+            kind: "run",
+            command: "node_modules/.bin/expo-analytics",
+            args: ["--help"],
+            expectStdout: "Usage: expo-analytics <install|uninstall|status>",
+          },
+        ],
+      },
+      {
+        prefix: "expo-analytics-consumer-",
+        install: ["install"],
+        files: ({ tarball, rootPackage, manifest, peerDependencies }) => ({
+          "package.json": json({
+            name: "expo-analytics-consumer-smoke",
+            private: true,
+            type: "module",
+            dependencies: {
+              "@mrmeg/expo-analytics": tarball,
+              ...peerDependencies,
+              react: rootPackage.dependencies.react,
+              "react-native": rootPackage.dependencies["react-native"],
+              // The driver a host brings; typed here against `fromPostgresJs`.
+              postgres: manifest.devDependencies.postgres,
+            },
+            devDependencies: {
+              "@types/node": rootPackage.devDependencies["@types/node"],
+              typescript: rootPackage.devDependencies.typescript,
+            },
+          }),
+          "tsconfig.json": json({
+            compilerOptions: {
+              strict: true,
+              module: "ESNext",
+              moduleResolution: "Bundler",
+              target: "ES2022",
+              lib: ["ES2022", "DOM"],
+              skipLibCheck: true,
+              noEmit: true,
+              types: ["node"],
+            },
+            include: ["*.ts"],
+          }),
+          "index.ts": ANALYTICS_INDEX_TS,
+        }),
+        steps: [
+          { kind: "assert-surface" },
+          { kind: "run", command: "bun", args: ["x", "tsc", "--noEmit"] },
+        ],
+      },
+    ],
+  },
 };
 
 const packageNames = Object.keys(PACKAGES).sort();
-const USAGE = "Usage: node scripts/check-package-consumer.mjs <ui|media|purchases|lint|metro> [--tarball <path>]";
+const USAGE = "Usage: node scripts/check-package-consumer.mjs <analytics|lint|media|metro|purchases|ui> [--tarball <path>]";
 const [packageName, ...options] = process.argv.slice(2);
 const target = PACKAGES[packageName];
 

@@ -1,7 +1,8 @@
 /**
  * The repo-only `@mrmeg/source` export condition.
  *
- * `@mrmeg/expo-ui`, `@mrmeg/expo-media` and `@mrmeg/expo-purchases` list it
+ * `@mrmeg/expo-ui`, `@mrmeg/expo-media`, `@mrmeg/expo-purchases` and
+ * `@mrmeg/expo-analytics` list it
  * first in each `exports` entry, pointing at `src`; tsconfig.json, Metro, and
  * Jest enable it, so the template builds and tests the workspace sources through
  * the same export maps consumers resolve. These pin both halves of that:
@@ -27,6 +28,7 @@ const PACKAGES = [
   { dir: "packages/ui", name: "@mrmeg/expo-ui" },
   { dir: "packages/media", name: "@mrmeg/expo-media" },
   { dir: "packages/purchases", name: "@mrmeg/expo-purchases" },
+  { dir: "packages/analytics", name: "@mrmeg/expo-analytics" },
 ];
 
 function readExports(dir: string): ExportsMap {

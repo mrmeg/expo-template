@@ -57,6 +57,12 @@ const sources = [
       "import paths, RevenueCat client and provider setup, entitlement resolution, gating, pure webhook and ledger helpers, identifier contract",
   },
   {
+    path: "packages/analytics/LLM_USAGE.md",
+    title: "@mrmeg/expo-analytics Usage",
+    summary:
+      "import paths, server setup and mounting, web and native trackers, identity and admin rules, revenue rows, reports and query API",
+  },
+  {
     path: "packages/lint/README.md",
     title: "@mrmeg/eslint-plugin-expo-ui",
     summary:

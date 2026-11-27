@@ -89,6 +89,27 @@ export const packageCompatibilityProfiles = {
       },
     },
   ],
+  analytics: [
+    {
+      name: "Expo 57",
+      sdk: 57,
+      // Not peers: only `./native` touches react-native, and nothing imports
+      // expo or react. The fixture needs them for `registerRootComponent` and
+      // `expo export`, the one place `./native` goes through Metro.
+      fixtureDependencies: { expo: "57.0.4", react: "19.2.3" },
+      versions: {
+        "react-native": "0.86.0",
+      },
+    },
+    {
+      name: "Expo 58",
+      sdk: 58,
+      fixtureDependencies: { expo: "58.0.0-preview.2", react: "19.2.3" },
+      versions: {
+        "react-native": "0.88.0-rc.0",
+      },
+    },
+  ],
   ui: [
     {
       name: "Expo 56",

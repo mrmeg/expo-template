@@ -13,7 +13,7 @@
  * whether platform-split modules exist, which is config-keyed below.
  *
  * Usage:
- *   node scripts/fix-package-esm.mjs <ui|media|purchases> [--dist <dir>]
+ *   node scripts/fix-package-esm.mjs <analytics|media|purchases|ui> [--dist <dir>]
  *
  * `--dist` rewrites a build emitted somewhere other than the package's `dist`
  * (the NodeNext consumer test builds into a temporary directory).
@@ -35,6 +35,8 @@ const PACKAGES = {
   ui: { dist: "packages/ui/dist", platformSuffixes: ["native", "web", "ios", "android"] },
   media: { dist: "packages/media/dist", platformSuffixes: ["native"] },
   purchases: { dist: "packages/purchases/dist", platformSuffixes: ["native"] },
+  // Platform entries are directories (`web/index.ts`, `native/index.ts`), not suffixed files.
+  analytics: { dist: "packages/analytics/dist", platformSuffixes: [] },
 };
 
 const packageNames = Object.keys(PACKAGES).sort();
@@ -45,7 +47,7 @@ const target = PACKAGES[packageName];
 
 function usageError(message) {
   console.error(message);
-  console.error("Usage: node scripts/fix-package-esm.mjs <ui|media|purchases> [--dist <dir>]");
+  console.error("Usage: node scripts/fix-package-esm.mjs <analytics|media|purchases|ui> [--dist <dir>]");
   process.exit(1);
 }
 

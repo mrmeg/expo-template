@@ -16,6 +16,7 @@ Source of truth before editing another project:
 | UI package setup, components, theming | `packages/ui/README.md` |
 | Media package setup, processing, server handlers | `packages/media/README.md` |
 | Purchases package: RevenueCat client, entitlement store, gating, webhook helpers | `packages/purchases/README.md` |
+| Analytics package: trackers, ingest server, Postgres tables, metrics, dashboard | `packages/analytics/README.md` |
 | Server output, API routes, data loaders, middleware | `docs/server-guide.md` |
 | Bundle budget and analysis workflow | `docs/bundle-analysis.md` |
 | Sentry runtime and native upload setup | `docs/error-tracking.md` |
@@ -33,7 +34,7 @@ same change.
 A Bun-managed Expo app: Expo Router, server-rendered web output, TypeScript strict
 mode, React Query, Zustand, optional Clerk or Cognito auth
 (`EXPO_PUBLIC_AUTH_PROVIDER` picks when both are configured), optional Stripe
-billing, optional S3/R2 media, optional Sentry, and two workspace packages:
+billing, optional S3/R2 media, optional Sentry, and these workspace packages:
 
 - `@mrmeg/expo-ui` from `packages/ui`: design tokens, theme state, reusable
   components, animation/haptic helpers, global UI state.
@@ -42,10 +43,15 @@ billing, optional S3/R2 media, optional Sentry, and two workspace packages:
 - `@mrmeg/expo-purchases` from `packages/purchases`: RevenueCat client,
   entitlement store, paywall gating, pure webhook and ledger helpers. Not used
   by the template app itself.
+- `@mrmeg/expo-analytics` from `packages/analytics`: self-hosted first-party
+  analytics (web and native trackers, ingest server, installable Postgres
+  tables, product/retention/acquisition/web/revenue reports, admin dashboard).
+  Not used by the template app itself.
 
 App-specific integration belongs in `app/`, `client/`, `server/`, or `shared/`.
 Reusable UI belongs in `packages/ui`; reusable media contracts and processing in
-`packages/media`; reusable purchases and entitlement code in `packages/purchases`.
+`packages/media`; reusable purchases and entitlement code in `packages/purchases`;
+reusable analytics tracking, tables and metrics in `packages/analytics`.
 
 ## LLM Use Rules
 

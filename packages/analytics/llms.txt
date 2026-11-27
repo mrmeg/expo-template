@@ -1,0 +1,27 @@
+# @mrmeg/expo-analytics
+
+Docs: README.md (install and remove, server setup and mounting, client
+trackers, server events and users, revenue, tracked links, metric definitions,
+privacy, dashboard and query API, operations), LLM_USAGE.md (setup and rules),
+llms-full.md (expanded contract).
+
+Entrypoints — `@mrmeg/expo-analytics` (core tracker), `/web`, `/native`,
+`/metrics` (pure report types and functions), `/server` (ingest, tables,
+reports, dashboard). Bin: `expo-analytics <install|uninstall|status>`.
+
+Rules:
+
+- `/server` needs Node or Bun; never import it into an app bundle. `/native` is
+  the only entry that imports `react-native` (an optional peer).
+- The package ships no driver: wrap the host's client with `fromPostgresJs` or
+  `fromPg`. `install()` is idempotent; call it on boot.
+- Never send a user id from the client. The server attributes events with
+  `resolveUserId(request)`; the tracker's `headers` carry the auth token.
+- The dashboard and `/api/*` answer 404 until `isAdmin` is supplied.
+- Event names are lowercase snake case; `$` names are reserved. Event maps and
+  their props are `type` aliases, not interfaces.
+- `identify(userId, { createdAt, excluded })` backfills sign-up dates and keeps
+  staff and test accounts out of every metric.
+- Revenue rows count toward MRR only with `providerSubscriptionId` and
+  `periodEnd`; add the period to `@mrmeg/expo-purchases` ledger rows.
+- Own SQL against the tables casts JSON parameters as `$1::text::jsonb`.

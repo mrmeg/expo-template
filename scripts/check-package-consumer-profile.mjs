@@ -29,7 +29,7 @@ const sdk = Number(option("--sdk"));
 
 if (!packageCompatibilityProfiles[packageKey] || !Number.isInteger(sdk)) {
   throw new Error(
-    "Usage: bun run packages:compatibility -- --package [media|purchases|ui] --sdk [55|56|57|58]",
+    "Usage: bun run packages:compatibility -- --package [analytics|media|purchases|ui] --sdk [55|56|57|58]",
   );
 }
 
@@ -153,6 +153,28 @@ try {
         "      <View />",
         "    </PurchasesProvider>",
         "  );",
+        "}",
+        "",
+      ].join("\n"),
+    );
+  } else if (packageKey === "analytics") {
+    // `./server` is left out: it needs Node (`node:crypto`, `Buffer`) and never
+    // belongs in an app bundle.
+    await writeFile(
+      join(fixture, "App.tsx"),
+      [
+        "import { View } from 'react-native';",
+        "import { createTracker } from '@mrmeg/expo-analytics';",
+        "import { createNativeTracker } from '@mrmeg/expo-analytics/native';",
+        "import { formatRateCell, rateCell } from '@mrmeg/expo-analytics/metrics';",
+        "",
+        "const transport = async () => ({ status: 200 });",
+        "const tracker = createNativeTracker({ endpoint: 'https://example.com/analytics/e', transport });",
+        "tracker.track('app_opened');",
+        "void createTracker; void formatRateCell(rateCell(1, 2));",
+        "",
+        "export default function App() {",
+        "  return <View />;",
         "}",
         "",
       ].join("\n"),

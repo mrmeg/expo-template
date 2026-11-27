@@ -123,7 +123,7 @@ scheme or non-reverse-DNS package throws before native build runs. Re-run
 | `bun lint:ui` | Design-system rules only, over `app`, `client`, `shared`; `--changed` for touched files, `--doctor` to check wiring — see [`packages/lint/README.md`](packages/lint/README.md) |
 | `bun run verify` | Every quality gate, in order — exactly what CI's `validate` job runs; the list is in [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates) |
 | `bun run gen` | Regenerate every generated artifact (icon, template, and block registries, LLM docs); `--check` fails on a stale one |
-| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint`, `metro` — see [Publishing packages](#publishing-packages) |
+| `bun run pkg <package> <task>` | A workspace package task: `typecheck`, `test`, `build`, `pack`, `consumer-smoke`, `release` for `ui`, `media`, `purchases`, `lint`, `metro`, `analytics` — see [Publishing packages](#publishing-packages) |
 | `bun run test:ci` | `jest --ci --forceExit` (`bun run test:coverage` adds the coverage report) |
 | `bun run e2e` | Maestro native smoke suite — see `docs/e2e.md` |
 | `bun run bundle-size` | Compare client JS against `scripts/bundle-baseline.json` |
@@ -174,8 +174,8 @@ bun run test:coverage                  # the same run with a coverage report
 ```
 
 Coverage (`bun run test:coverage`) spans `client/**`, `app/api/**`,
-`server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and
-`packages/purchases/src/**`, so a coverage run shows the route-level seams (CORS,
+`server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`,
+`packages/purchases/src/**`, and `packages/analytics/src/**`, so a coverage run shows the route-level seams (CORS,
 rate limiting, auth bootstrap, media storage, billing) and the packaged UI. CI
 does not collect it. The lint plugin's own suites live in
 `packages/lint/__tests__` and run with the rest of jest.
@@ -217,6 +217,7 @@ does not collect it. The lint plugin's own suites live in
 /packages/purchases           # @mrmeg/expo-purchases npm package source
 /packages/lint                # @mrmeg/eslint-plugin-expo-ui npm package source
 /packages/metro               # @mrmeg/expo-metro npm package source (Metro config wrapper)
+/packages/analytics           # @mrmeg/expo-analytics npm package source (self-hosted analytics)
 
 /server.bun.ts                # Bun production server (compression, CORS, rate limits)
 /server                       # Shared server helpers (rate limits, API helpers, media handlers)
@@ -339,7 +340,7 @@ implementation details such as
 
 ### Publishing packages
 
-Every workspace package (`ui`, `media`, `purchases`, `lint`, `metro`) has the same tasks:
+Every workspace package (`ui`, `media`, `purchases`, `lint`, `metro`, `analytics`) has the same tasks:
 
 ```bash
 bun run pkg ui typecheck
@@ -443,7 +444,10 @@ jobs, no app credentials required:
   the gates and what each checks are in
   [`CONTRIBUTING.md#verify-gates`](CONTRIBUTING.md#verify-gates). Its `lint` is
   `expo lint`, so it gates `app/` only; run `bun lint:ui` for `client/` and
-  `shared/`.
+  `shared/`. The job runs a Postgres 17 service and sets
+  `ANALYTICS_TEST_DATABASE_URL` with `REQUIRE_TEST_DB=1`, so the
+  `@mrmeg/expo-analytics` database suites run (and fail rather than skip without
+  it); locally they skip unless you set the URL.
 - **Web Build + Bundle Size** — `bun run build` → `bun run bundle-size` →
   `bun run first-load`. Fails the PR on >10% client bundle growth against
   `scripts/bundle-baseline.json`, or >5% growth in what `/` downloads against

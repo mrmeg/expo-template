@@ -8,8 +8,9 @@
  * symbol behind it silently becomes `any` — `createMediaHandlers` typed as `any`
  * compiles, and so does every wrong call to it.
  *
- * This builds `@mrmeg/expo-ui`, `@mrmeg/expo-media` and `@mrmeg/expo-purchases`
- * the way their `build` scripts do (`tsc -p tsconfig.build.json`, then
+ * This builds `@mrmeg/expo-ui`, `@mrmeg/expo-media`, `@mrmeg/expo-purchases` and
+ * `@mrmeg/expo-analytics` the way their `build` scripts do (`tsc -p
+ * tsconfig.build.json`, then
  * `scripts/fix-package-esm.mjs`), installs each under a throwaway project's
  * `node_modules` with its real `package.json`, and type-checks an ESM entry that
  * imports every public entry point — each `exports` key, with the `*` patterns
@@ -46,6 +47,7 @@ const PACKAGES = [
   { key: "ui", dir: "packages/ui" },
   { key: "media", dir: "packages/media" },
   { key: "purchases", dir: "packages/purchases" },
+  { key: "analytics", dir: "packages/analytics" },
 ] as const;
 
 /** The repo-only condition that points at `src`; a consumer never sets it. */
@@ -152,6 +154,16 @@ function moduleSpecifiersOf(sourceFile: ts.SourceFile): ts.StringLiteralLike[] {
  * declarations is correct and inherits the `any`.
  */
 const UNTYPED_UNDER_NODENEXT = [/^@rn-primitives\//];
+
+/**
+ * Node built-ins named by declarations of server-only entry points. They resolve
+ * through `@types/node` (or Bun's types), which every Node or Bun server project
+ * has and this fixture deliberately leaves out (`types: []`), so here they are
+ * unresolved and what crosses them is `any`. Pinned, so a new one is noticed;
+ * the "with Node's types" test below proves they resolve and type once present.
+ */
+const NODE_BUILTIN_IMPORTS = ['node_modules/@mrmeg/expo-analytics/dist/server/http.d.ts: "node:http"'];
+const ANY_WITHOUT_NODE_TYPES = ["@mrmeg/expo-analytics/server: NodeRequestLike"];
 
 const EXPECTED_INHERITED_ANY = [
   "AlertDialogAction (@rn-primitives/alert-dialog)",
@@ -292,6 +304,7 @@ describe("NodeNext consumer of the built packages", () => {
       byPackage.set(packageName, (byPackage.get(packageName) ?? 0) + 1);
     }
     expect([...byPackage.keys()].sort()).toEqual([
+      "@mrmeg/expo-analytics",
       "@mrmeg/expo-media",
       "@mrmeg/expo-purchases",
       "@mrmeg/expo-ui",
@@ -306,6 +319,8 @@ describe("NodeNext consumer of the built packages", () => {
         "@mrmeg/expo-media/processing/image-compression/config",
         "@mrmeg/expo-media/server",
         "@mrmeg/expo-purchases/server",
+        "@mrmeg/expo-analytics/native",
+        "@mrmeg/expo-analytics/server",
       ]),
     );
   });
@@ -322,6 +337,7 @@ describe("NodeNext consumer of the built packages", () => {
 
   it("resolves every module specifier in the built declarations", () => {
     const unresolved: string[] = [];
+    const nodeBuiltins: string[] = [];
     let checked = 0;
     for (const sourceFile of program.getSourceFiles()) {
       if (!isPackageDeclaration(sourceFile.fileName)) continue;
@@ -337,12 +353,14 @@ describe("NodeNext consumer of the built packages", () => {
           program.getModeForUsageLocation(sourceFile, specifier),
         );
         if (!resolvedModule) {
-          unresolved.push(`${relative(fixtureRoot, sourceFile.fileName)}: ${JSON.stringify(specifier.text)}`);
+          const label = `${relative(fixtureRoot, sourceFile.fileName)}: ${JSON.stringify(specifier.text)}`;
+          (specifier.text.startsWith("node:") ? nodeBuiltins : unresolved).push(label);
         }
       }
     }
     expect(checked).toBeGreaterThan(100);
     expect(unresolved).toEqual([]);
+    expect(nodeBuiltins.sort()).toEqual(NODE_BUILTIN_IMPORTS);
   });
 
   it("types no export of any entry point as `any`", () => {
@@ -378,8 +396,37 @@ describe("NodeNext consumer of the built packages", () => {
     }
 
     expect(checked).toBeGreaterThan(200);
-    expect(anyExports).toEqual([]);
+    expect(anyExports.filter((name) => !ANY_WITHOUT_NODE_TYPES.includes(name))).toEqual([]);
+    expect(anyExports.filter((name) => ANY_WITHOUT_NODE_TYPES.includes(name)).sort()).toEqual(ANY_WITHOUT_NODE_TYPES);
     // Pinned so a dependency that starts (or stops) degrading is noticed.
     expect([...inherited].sort()).toEqual(EXPECTED_INHERITED_ANY);
+  });
+
+  it("with Node's types, the server-only declarations resolve their built-ins and type every export", () => {
+    const withNode = ts.createProgram({
+      rootNames: [join(fixtureRoot, "index.ts")],
+      options: { ...compilerOptions, types: ["node"] },
+    });
+    const checker = withNode.getTypeChecker();
+    // Ambient module symbols are named with their quotes: `"node:http"`.
+    const ambient = new Set(checker.getAmbientModules().map((symbol) => symbol.getName().replace(/^"|"$/g, "")));
+    for (const label of NODE_BUILTIN_IMPORTS) {
+      const specifier = JSON.parse(label.slice(label.indexOf(": ") + 2)) as string;
+      expect([specifier, ambient.has(specifier)]).toEqual([specifier, true]);
+    }
+    const entryFile = withNode.getSourceFile(join(fixtureRoot, "index.ts"))!;
+    const stillAny: string[] = [];
+    for (const statement of entryFile.statements) {
+      if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+      const moduleSymbol = checker.getSymbolAtLocation(statement.moduleSpecifier);
+      if (!moduleSymbol) continue;
+      for (const exported of checker.getExportsOfModule(moduleSymbol)) {
+        const label = `${statement.moduleSpecifier.text}: ${exported.getName()}`;
+        if (!ANY_WITHOUT_NODE_TYPES.includes(label)) continue;
+        const target = exported.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(exported) : exported;
+        if (checker.getDeclaredTypeOfSymbol(target).flags & ts.TypeFlags.Any) stillAny.push(label);
+      }
+    }
+    expect(stillAny).toEqual([]);
   });
 });
