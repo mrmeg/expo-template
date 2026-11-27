@@ -1198,8 +1198,9 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
       dates: report.series.map(function (p) { return p.date; }),
       format: fmtCount,
       series: [
+        // Visits are left off the plot: they track visitors so closely that the
+        // two lines cover each other. The Visits tile above carries the total.
         { name: "Visitors", values: report.series.map(function (p) { return p.visitors; }) },
-        { name: "Visits", values: report.series.map(function (p) { return p.visits; }) },
         { name: "Pageviews", values: report.series.map(function (p) { return p.pageviews; }) }
       ]
     }));
@@ -1546,14 +1547,28 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
     });
   }
 
+  // On a phone the tab strip scrolls sideways, so a tab opened from a link or a
+  // reload can be off screen. Centre it in the strip; scrollIntoView would also
+  // move the page vertically.
+  function revealTab(link) {
+    var strip = link.closest ? link.closest(".tab-list") : null;
+    if (!strip || !link.getBoundingClientRect) return;
+    var box = link.getBoundingClientRect();
+    var frame = strip.getBoundingClientRect();
+    if (box.left >= frame.left && box.right <= frame.right) return;
+    strip.scrollLeft += box.left - frame.left - (frame.width - box.width) / 2;
+  }
+
   function showSection(id) {
     state.tab = id;
     SECTIONS.forEach(function (name) {
       sectionNode(name).hidden = name !== id;
     });
     Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (link) {
-      if (link.getAttribute("data-tab") === id) link.setAttribute("aria-current", "page");
-      else link.removeAttribute("aria-current");
+      if (link.getAttribute("data-tab") === id) {
+        link.setAttribute("aria-current", "page");
+        revealTab(link);
+      } else link.removeAttribute("aria-current");
     });
     save();
     loadSection(id);

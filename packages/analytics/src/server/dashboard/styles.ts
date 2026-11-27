@@ -123,6 +123,7 @@ a { color: var(--accent); }
   min-height: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--border);
   background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; max-width: 100%;
 }
+.field input::placeholder { color: var(--ink-2); opacity: 1; }
 .button {
   min-height: 44px; padding: 0 16px; border-radius: 8px; border: 1px solid transparent;
   background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 14.5px; font-weight: 600; cursor: pointer;
@@ -254,7 +255,9 @@ details.data > summary { display: flex; align-items: center; min-height: 44px; c
 
 /* -- Tables --------------------------------------------------------------- */
 
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+/* position: relative keeps the visually hidden (absolutely positioned) labels
+   inside scrolled-off cells contained; without it they widen the document. */
+.table-wrap { position: relative; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
 table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
 caption { text-align: left; }
 th, td { padding: 8px 10px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--grid); }
