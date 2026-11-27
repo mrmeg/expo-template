@@ -319,9 +319,11 @@ function AccordionTrigger({
  *
  * SPIKE: height animates through a `transition*` style on a measured height
  * (CSS on web, Reanimated's CSS transitions on native), the same code on every
- * platform. The inner view is laid out at its natural height inside a clipping
- * outer view, so it can be measured while the outer is still 0 tall. Closed
- * content unmounts once the exit has run, as it did before.
+ * platform. The inner view is absolutely positioned inside the clipping outer
+ * view so it can be measured while the outer is 0 tall: in flow, Yoga caps a
+ * child's measured height at its parent's (CSS does not), and the content
+ * measured as padding only. Closed content unmounts once the exit has run, as
+ * it did before.
  */
 function AccordionContent({
   children,
@@ -341,6 +343,9 @@ function AccordionContent({
     return null;
   }
 
+  // Until an initially open item has been measured it stays in flow at its
+  // natural height; from then on the outer height is always a number.
+  const inFlow = measured == null && startedOpen;
   const restingHeight = measured ?? (startedOpen ? undefined : 0);
   const clipStyle: MotionStyle = {
     overflow: "hidden",
@@ -361,9 +366,9 @@ function AccordionContent({
           <View
             onLayout={(event) => setMeasured(event.nativeEvent.layout.height)}
             style={[
+              inFlow ? null : { position: "absolute", top: 0, left: 0, right: 0 },
               {
                 paddingBottom: spacing.sm,
-                flexShrink: 0,
               },
               // Spread array styles from primitives to prevent nested arrays on web
               ...(styleOverride && typeof styleOverride !== "function"
