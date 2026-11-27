@@ -3,6 +3,10 @@ import { GestureResponderEvent, Modal, Platform, StyleSheet, View, ViewProps, ty
 import * as DialogPrimitive from "./overlayPrimitives/dialog";
 import * as AlertDialogPrimitive from "./overlayPrimitives/alertDialog";
 import { AnimatedView } from "./AnimatedView";
+import { MotionView, type MotionStyle } from "../lib/MotionView";
+import { usePresence } from "../hooks/usePresence";
+import { useReducedMotion } from "../hooks/useReduceMotion";
+import { durations } from "../constants/motion";
 import { KeyboardAvoidingView } from "./KeyboardAvoidingView";
 import { useWindowInsets } from "../hooks/useWindowInsets";
 import { SUPPORTED_ORIENTATIONS } from "../lib/modalOrientations";
@@ -26,6 +30,12 @@ interface DialogPresentationProps {
   portalHost?: string;
   /** Close request from the platform (hardware back / TV menu); wired to the root's `onOpenChange`. */
   onRequestClose: () => void;
+  /**
+   * SPIKE. The caller owns presence: `open` is "keep mounted" (true through
+   * the exit transition) and the primitive portal is force-mounted so it does
+   * not drop its children the moment the root closes.
+   */
+  ownsPresence?: boolean;
   children: React.ReactNode;
 }
 
@@ -66,10 +76,17 @@ function DialogPresentation({
   open,
   portalHost,
   onRequestClose,
+  ownsPresence = false,
   children,
 }: DialogPresentationProps) {
   if (Platform.OS !== "ios") {
-    return <Portal hostName={portalHost}>{children}</Portal>;
+    if (!ownsPresence) {
+      return <Portal hostName={portalHost}>{children}</Portal>;
+    }
+    if (!open) {
+      return null;
+    }
+    return <Portal forceMount hostName={portalHost}>{children}</Portal>;
   }
   if (!open) {
     return null;
@@ -220,14 +237,39 @@ function DialogContent({
     palette.black,
   );
 
+  // SPIKE: one presence + transition description for iOS, Android and web.
+  // Enter is ease-out over `normal`, exit is ease-in over `fast`.
+  const reduceMotion = useReducedMotion();
+  const exitMs = reduceMotion ? 0 : durations.fast;
+  const { mounted, shown } = usePresence(open, exitMs);
+  const transition: MotionStyle = reduceMotion
+    ? {}
+    : {
+      transitionDuration: shown ? `${durations.normal}ms` : `${durations.fast}ms`,
+      transitionTimingFunction: shown ? "ease-out" : "ease-in",
+    };
+  const backdropStyle: MotionStyle = {
+    backgroundColor: theme.colors.overlay,
+    opacity: shown ? 1 : 0,
+    transitionProperty: "opacity",
+    ...transition,
+  };
+  const cardStyle: MotionStyle = {
+    transform: [{ scale: shown ? 1 : 0.96 }],
+    transitionProperty: "transform",
+    ...transition,
+  };
+
   return (
     <DialogPresentation
       Portal={DialogPrimitive.Portal}
-      open={open}
+      open={mounted}
+      ownsPresence
       portalHost={portalHost}
       onRequestClose={() => onOpenChange(false)}
     >
       <DialogPrimitive.Overlay
+        forceMount
         // On web the primitive wraps the overlay in a react-native-web
         // Pressable whose click handler stops propagation unconditionally.
         // With that Pressable between the overlay and the Radix content,
@@ -237,19 +279,22 @@ function DialogContent({
         // Pressable; Radix dismissal then works. Native keeps the Pressable,
         // which is what implements closeOnPress there.
         asChild={Platform.OS === "web"}
+        // While closing, the force-mounted native overlay would read a press
+        // as "toggle" and reopen the dialog (`onOpenChange(!open)`).
         style={StyleSheet.flatten([
           StyleSheet.absoluteFill,
-          { backgroundColor: theme.colors.overlay },
           Platform.OS === "web" && { zIndex: 50 },
+          !open && { pointerEvents: "none" as const },
         ])}
       >
-        <AnimatedView type="fade" enterDuration={200} style={StyleSheet.absoluteFill}>
+        <MotionView style={[StyleSheet.absoluteFill, backdropStyle]}>
           <DialogKeyboardAvoidance>
             <View style={[overlayStyles.centeredContainer, safeAreaPadding]} testID="dialog-safe-area">
-              <AnimatedView type="scale" enterDuration={250} style={overlayStyles.sizer}>
+              <MotionView style={[overlayStyles.sizer, cardStyle]}>
                 <TextColorContext.Provider value={textColor}>
                   <TextClassContext.Provider value="">
                     <DialogPrimitive.Content
+                      forceMount
                       style={StyleSheet.flatten([
                         {
                           backgroundColor: theme.colors.popover,
@@ -270,10 +315,10 @@ function DialogContent({
                     </DialogPrimitive.Content>
                   </TextClassContext.Provider>
                 </TextColorContext.Provider>
-              </AnimatedView>
+              </MotionView>
             </View>
           </DialogKeyboardAvoidance>
-        </AnimatedView>
+        </MotionView>
       </DialogPrimitive.Overlay>
     </DialogPresentation>
   );

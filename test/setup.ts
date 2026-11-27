@@ -376,3 +376,14 @@ beforeEach(() => {
 
 // Global test timeout
 jest.setTimeout(10000);
+
+// SPIKE (motion engine): the kit's `.native` motion files import Reanimated.
+// Reanimated 4.7.1 cannot be imported under Jest at all: its native
+// initializer calls `setCSSEventHandler`, which the Jest module throws on, and
+// its own `react-native-reanimated/mock` goes through the same initializer.
+// The kit only uses `Animated.View` as a view that accepts `transition*`
+// styles, so a plain `View` stands in.
+jest.mock("react-native-reanimated", () => ({
+  __esModule: true,
+  default: { View: require("react-native").View },
+}));

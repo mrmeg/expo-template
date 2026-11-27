@@ -7,6 +7,9 @@ import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
 import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
+import { MotionView, type MotionStyle } from "../lib/MotionView";
+import { usePresence } from "../hooks/usePresence";
+import { durations } from "../constants/motion";
 import { spacing } from "../constants/spacing";
 import { shouldUseNativeDriver } from "../lib/animations";
 import * as AccordionPrimitive from "@rn-primitives/accordion";
@@ -312,30 +315,65 @@ function AccordionTrigger({
 
 /**
  * Accordion Content Component
- * Expandable content area with animations
+ * Expandable content area.
+ *
+ * SPIKE: height animates through a `transition*` style on a measured height
+ * (CSS on web, Reanimated's CSS transitions on native), the same code on every
+ * platform. The inner view is laid out at its natural height inside a clipping
+ * outer view, so it can be measured while the outer is still 0 tall. Closed
+ * content unmounts once the exit has run, as it did before.
  */
 function AccordionContent({
   children,
   style: styleOverride,
   ...props
 }: AccordionPrimitive.ContentProps & React.RefAttributes<AccordionPrimitive.ContentRef>) {
+  const { isExpanded } = AccordionPrimitive.useItemContext();
+  const reduceMotion = useReducedMotion();
+  const ms = reduceMotion ? 0 : durations.normal;
+  const { mounted, shown } = usePresence(isExpanded, ms);
+  // An item that is open on the first render shows at its natural height
+  // until it has been measured: nothing to animate, and server markup is whole.
+  const [startedOpen] = useState(isExpanded);
+  const [measured, setMeasured] = useState<number | null>(null);
+
+  if (!mounted) {
+    return null;
+  }
+
+  const restingHeight = measured ?? (startedOpen ? undefined : 0);
+  const clipStyle: MotionStyle = {
+    overflow: "hidden",
+    height: shown ? restingHeight : 0,
+    ...(reduceMotion
+      ? null
+      : {
+        transitionProperty: "height",
+        transitionDuration: `${ms}ms`,
+        transitionTimingFunction: shown ? "ease-out" : "ease-in",
+      }),
+  };
+
   return (
     <TextClassContext.Provider value="">
-      <AccordionPrimitive.Content {...props}>
-        <View
-          style={[
-            {
-              paddingBottom: spacing.sm,
-              overflow: "hidden",
-            },
-            // Spread array styles from primitives to prevent nested arrays on web
-            ...(styleOverride && typeof styleOverride !== "function"
-              ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
-              : []
-            ),
-          ]}>
-          {children}
-        </View>
+      <AccordionPrimitive.Content forceMount {...props}>
+        <MotionView style={clipStyle}>
+          <View
+            onLayout={(event) => setMeasured(event.nativeEvent.layout.height)}
+            style={[
+              {
+                paddingBottom: spacing.sm,
+                flexShrink: 0,
+              },
+              // Spread array styles from primitives to prevent nested arrays on web
+              ...(styleOverride && typeof styleOverride !== "function"
+                ? (Array.isArray(styleOverride) ? styleOverride : [styleOverride])
+                : []
+              ),
+            ]}>
+            {children}
+          </View>
+        </MotionView>
       </AccordionPrimitive.Content>
     </TextClassContext.Provider>
   );
