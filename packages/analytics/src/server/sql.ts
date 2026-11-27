@@ -7,9 +7,10 @@
  * same:
  * - Positional parameters (`$1`, `$2`, ...) only.
  * - Every parameter is a string, number, boolean, `null`, or `Date`. Arrays and
- *   objects travel as one JSON string cast in SQL (`$1::jsonb`, then
- *   `jsonb_array_elements_text` or `jsonb_to_recordset`), because drivers
- *   disagree on how to serialize them.
+ *   objects travel as one JSON string cast in SQL as `$1::text::jsonb`, then
+ *   `jsonb_array_elements_text` or `jsonb_to_recordset`. Never a bare
+ *   `$1::jsonb`: postgres.js JSON-encodes a string parameter the server types
+ *   as jsonb a second time, so the value arrives as a JSON string scalar.
  * - Result columns are selected with explicit casts where the driver default
  *   is lossy: `count(*)::int`, `sum(x)::bigint` read as string, dates as
  *   `to_char(..., 'YYYY-MM-DD')`.

@@ -129,6 +129,8 @@ export const MIGRATIONS: readonly Migration[] = [
       `create index ${ix("events_app_name_time")} on ${t.events} (app_id, name, occurred_at)`,
       `create index ${ix("events_app_user_time")} on ${t.events} (app_id, user_id, occurred_at) where user_id is not null`,
       `create index ${ix("events_app_session")} on ${t.events} (app_id, session_id) where session_id is not null`,
+      // Identity stitching: which user a device's anonymous id belongs to.
+      `create index ${ix("events_app_anon_user")} on ${t.events} (app_id, anonymous_id, occurred_at) where user_id is not null and anonymous_id is not null`,
 
       // One row per visit, maintained at ingest so web traffic queries never
       // scan events. `custom_events` counts non-reserved events; a bounce is a

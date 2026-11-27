@@ -52,6 +52,13 @@ export const LIMITS = {
   sessionIdleMs: 30 * 60 * 1000,
 } as const;
 
+/**
+ * Query parameter a tracked link (`<basePath>/go/:channel`) appends to its web
+ * destination. The web tracker reads it into `acquisition.link_click_id`, which
+ * ties a later sign-up to the click that brought the visitor.
+ */
+export const LINK_CLICK_PARAM = "link_click";
+
 /** One captured event. */
 export interface WireEvent {
   /** Client-generated UUID. Replays are dropped on it, so retries are safe. */
