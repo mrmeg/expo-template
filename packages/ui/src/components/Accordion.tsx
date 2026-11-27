@@ -7,8 +7,8 @@ import { useReducedMotion } from "../hooks/useReduceMotion";
 import { useScalePress } from "../hooks/useScalePress";
 import { useFocusVisible } from "../hooks/useFocusVisible";
 import { useAnimatedValue } from "../lib/useAnimatedValue";
-import { MotionView, type MotionStyle } from "../lib/MotionView";
-import { usePresence } from "../hooks/usePresence";
+import { MotionView } from "../lib/MotionView";
+import { useCollapse } from "../hooks/useCollapse";
 import { durations } from "../constants/motion";
 import { spacing } from "../constants/spacing";
 import { shouldUseNativeDriver } from "../lib/animations";
@@ -317,13 +317,10 @@ function AccordionTrigger({
  * Accordion Content Component
  * Expandable content area.
  *
- * SPIKE: height animates through a `transition*` style on a measured height
- * (CSS on web, Reanimated's CSS transitions on native), the same code on every
- * platform. The inner view is absolutely positioned inside the clipping outer
- * view so it can be measured while the outer is 0 tall: in flow, Yoga caps a
- * child's measured height at its parent's (CSS does not), and the content
- * measured as padding only. Closed content unmounts once the exit has run, as
- * it did before.
+ * SPIKE: the height animates through a `transition*` style (CSS on web,
+ * Reanimated's CSS transitions on native), the same code on every platform.
+ * `useCollapse` owns the stages; closed content unmounts once the exit has
+ * run, as it did before.
  */
 function AccordionContent({
   children,
@@ -332,45 +329,20 @@ function AccordionContent({
 }: AccordionPrimitive.ContentProps & React.RefAttributes<AccordionPrimitive.ContentRef>) {
   const { isExpanded } = AccordionPrimitive.useItemContext();
   const reduceMotion = useReducedMotion();
-  const ms = reduceMotion ? 0 : durations.normal;
-  const { mounted, shown } = usePresence(isExpanded, ms);
-  // An item that is open on the first render shows at its natural height
-  // until it has been measured: nothing to animate, and server markup is whole.
-  const [startedOpen] = useState(isExpanded);
-  const [measured, setMeasured] = useState<number | null>(null);
+  const collapse = useCollapse(isExpanded, reduceMotion ? 0 : durations.normal);
 
-  if (!mounted) {
+  if (!collapse.mounted) {
     return null;
   }
-
-  // Until an initially open item has been measured it stays in flow at its
-  // natural height; from then on the outer height is always a number.
-  const inFlow = measured == null && startedOpen;
-  const restingHeight = measured ?? (startedOpen ? undefined : 0);
-  const clipStyle: MotionStyle = {
-    overflow: "hidden",
-    height: shown ? restingHeight : 0,
-    ...(reduceMotion
-      ? null
-      : {
-        transitionProperty: "height",
-        transitionDuration: `${ms}ms`,
-        // One curve both ways: in a single-type accordion one item closes
-        // while another opens, and with ease-out against ease-in the two
-        // heights do not sum to a constant, so the rows below bulged by ~7 pt
-        // mid-swap.
-        transitionTimingFunction: "ease-in-out",
-      }),
-  };
 
   return (
     <TextClassContext.Provider value="">
       <AccordionPrimitive.Content forceMount {...props}>
-        <MotionView style={clipStyle}>
+        <MotionView style={collapse.clipStyle} onTransitionEnd={collapse.onClipTransitionEnd}>
           <View
-            onLayout={(event) => setMeasured(event.nativeEvent.layout.height)}
+            onLayout={collapse.onContentLayout}
             style={[
-              inFlow ? null : { position: "absolute", top: 0, left: 0, right: 0 },
+              collapse.contentStyle,
               {
                 paddingBottom: spacing.sm,
               },

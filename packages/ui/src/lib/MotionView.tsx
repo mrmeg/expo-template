@@ -1,5 +1,6 @@
-import type { ComponentType } from "react";
+import { useEffect, useRef, type ComponentRef, type Ref } from "react";
 import { View, type StyleProp, type ViewProps, type ViewStyle } from "react-native";
+import { composeRefs } from "./composeRefs";
 
 /**
  * SPIKE. The subset of CSS transition style props that react-native-web (real
@@ -21,8 +22,17 @@ export type MotionStyle = ViewStyle & {
   transitionTimingFunction?: "linear" | "ease" | "ease-in" | "ease-out" | "ease-in-out";
 };
 
+type ViewRef = ComponentRef<typeof View>;
+
 export type MotionViewProps = Omit<ViewProps, "style"> & {
   style?: StyleProp<MotionStyle>;
+  ref?: Ref<ViewRef>;
+  /**
+   * One of this view's own transitions finished (not a descendant's, and not
+   * one that was interrupted). The platform's signal that an exit has really
+   * run, which a timer started at render time cannot know.
+   */
+  onTransitionEnd?: () => void;
 };
 
 /**
@@ -30,5 +40,23 @@ export type MotionViewProps = Omit<ViewProps, "style"> & {
  * the `transition*` props to CSS, so the browser runs the transition and no
  * animation library is in the web bundle. `MotionView.native.tsx` is the
  * Reanimated half.
+ *
+ * react-native-web does not forward `onTransitionEnd`, so the listener goes on
+ * the DOM node. `transitionend` bubbles: a descendant's hover transition would
+ * otherwise read as this view's exit finishing.
  */
-export const MotionView = View as unknown as ComponentType<MotionViewProps>;
+export function MotionView({ onTransitionEnd, ref, style, ...props }: MotionViewProps) {
+  const nodeRef = useRef<ViewRef>(null);
+
+  useEffect(() => {
+    const node = nodeRef.current as unknown as HTMLElement | null;
+    if (!node || !onTransitionEnd || typeof node.addEventListener !== "function") return;
+    const handle = (event: Event) => {
+      if (event.target === node) onTransitionEnd();
+    };
+    node.addEventListener("transitionend", handle);
+    return () => node.removeEventListener("transitionend", handle);
+  }, [onTransitionEnd]);
+
+  return <View ref={composeRefs(nodeRef, ref)} style={style as StyleProp<ViewStyle>} {...props} />;
+}

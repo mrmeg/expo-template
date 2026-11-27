@@ -1,23 +1,34 @@
 import { useEffect, useState } from "react";
 
-/** Three frames at 60 Hz: covers the commit-to-first-frame delay of an exit. */
-const EXIT_MARGIN_MS = 50;
+/**
+ * How long past `exitMs` to wait before unmounting anyway. The transition-end
+ * event is the real signal; this only covers an exit that never reports (no
+ * visible change to transition, or a platform that drops the event).
+ */
+const EXIT_FALLBACK_MS = 400;
 
 export interface Presence {
-  /** Render the subtree. Stays `true` for `exitMs` after `present` turns false. */
+  /** Render the subtree. Stays `true` until the exit transition has ended. */
   mounted: boolean;
   /**
-   * The subtree's resting state. `false` for the first frame after mounting
+   * The subtree's resting state. `false` for the first frames after mounting
    * (so a transition has a start state to leave) and again from the moment
    * `present` turns false (so the exit transition runs while still mounted).
    */
   shown: boolean;
+  /** Pass to the animated `MotionView`'s `onTransitionEnd`. */
+  onTransitionEnd: () => void;
 }
 
 /**
  * SPIKE. Keeps a subtree mounted long enough to animate out, on every
- * platform, with no animation library: the caller styles on `shown` and a
- * `transition*` style does the rest.
+ * platform, with no animation library: the caller styles on `shown`, a
+ * `transition*` style does the rest, and the view's own transition-end event
+ * unmounts it.
+ *
+ * A timer alone is not enough: it starts when React renders, the transition
+ * starts when the platform gets to it, and on Android the dialog was removed
+ * with half its fade still to run (a 50 ms margin did not close the gap).
  *
  * A subtree that is present on the first render starts `shown`, so server
  * markup carries the final state and nothing animates during hydration.
@@ -46,12 +57,15 @@ export function usePresence(present: boolean, exitMs: number): Presence {
       setMounted(false);
       return;
     }
-    // The transition starts a frame or two after this render commits, so a
-    // timer of exactly `exitMs` unmounts before the last frames have painted
-    // (seen on Android: the fade's final step jumped 35-55% of the range).
-    const timer = setTimeout(() => setMounted(false), exitMs + EXIT_MARGIN_MS);
+    const timer = setTimeout(() => setMounted(false), exitMs + EXIT_FALLBACK_MS);
     return () => clearTimeout(timer);
   }, [present, exitMs]);
 
-  return { mounted: mounted || present, shown: shown && present };
+  return {
+    mounted: mounted || present,
+    shown: shown && present,
+    onTransitionEnd: () => {
+      if (!present) setMounted(false);
+    },
+  };
 }

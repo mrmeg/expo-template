@@ -241,7 +241,7 @@ function DialogContent({
   // Enter is ease-out over `normal`, exit is ease-in over `fast`.
   const reduceMotion = useReducedMotion();
   const exitMs = reduceMotion ? 0 : durations.fast;
-  const { mounted, shown } = usePresence(open, exitMs);
+  const { mounted, shown, onTransitionEnd } = usePresence(open, exitMs);
   const transition: MotionStyle = reduceMotion
     ? {}
     : {
@@ -287,7 +287,7 @@ function DialogContent({
           !open && { pointerEvents: "none" as const },
         ])}
       >
-        <MotionView style={[StyleSheet.absoluteFill, backdropStyle]}>
+        <MotionView style={[StyleSheet.absoluteFill, backdropStyle]} onTransitionEnd={onTransitionEnd}>
           <DialogKeyboardAvoidance>
             <View style={[overlayStyles.centeredContainer, safeAreaPadding]} testID="dialog-safe-area">
               <MotionView style={[overlayStyles.sizer, cardStyle]}>
