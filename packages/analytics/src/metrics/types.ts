@@ -27,7 +27,11 @@ export interface MetricsConfig {
   timezone?: string;
   /** The event that marks a user as activated, and how long after sign-up it may occur. */
   activation?: { event: string; withinDays?: number };
-  /** Events that count as activity. Default: every event except "$session_end". */
+  /**
+   * Events that count as activity, on any platform. Default: every event except
+   * "$session_end" and except events whose platform is "server" (what the host
+   * records itself with `track()`, such as a billing webhook).
+   */
   activeEvents?: readonly string[];
   /** N for the headline retention figures. Default [1, 7, 30, 90]. */
   retentionDays?: readonly number[];
@@ -323,28 +327,70 @@ export interface TrialConversion {
 }
 
 export interface RevenueTotals {
-  /** Sum of positive amounts. */
+  /** Sum of positive amounts, leaving out `refund_reversed` rows. */
   gross_cents: number;
-  /** Sum of negative amounts, as a positive number. */
+  /**
+   * Refunds net of reversals: the sum of negative amounts (as a positive
+   * number) minus `refunds_reversed_cents`. Negative when a refund from before
+   * the range was reversed inside it.
+   */
   refunds_cents: number;
+  /**
+   * Restored by `refund_reversed` rows in the range. Each reversal cancels the
+   * most recent unreversed refund of the same subscription (or, without one,
+   * the same `provider_event_id`): its own amount when it has one, else the
+   * refunded amount.
+   */
+  refunds_reversed_cents: number;
   /** `gross - refunds`. */
   net_cents: number;
 }
 
-export interface RevenueReport extends ReportBase {
+/** Current MRR in one currency. */
+export interface CurrencyMrr {
+  /** ISO 4217 code, upper case; `XXX` for ledger rows with no currency. */
+  currency: string;
+  current_cents: number;
+}
+
+/**
+ * Which currencies a report's money figures involve. Amounts are never
+ * converted: when more than one is involved (`currency` null, `currencies`
+ * longer than one) the figures sum unlike currencies and must be shown as
+ * mixed, with the per-currency breakdown beside them.
+ */
+export interface CurrencyInfo {
+  /**
+   * The one currency every money figure is in. Null when more than one is
+   * involved, and also when none is (no money at all, every figure zero).
+   */
+  currency: string | null;
+  /** Every currency involved (MRR at any snapshot, or revenue in the range), most current MRR first. */
+  currencies: string[];
+}
+
+/**
+ * Money figures are integer cents in `currency`; when `currency` is null they
+ * sum more than one currency (see `currencies` and `mrr.by_currency`).
+ * Snapshots are never taken later than the report's `now`: "the end of the
+ * last day" means `min(end of the range's last day, now)`.
+ */
+export interface RevenueReport extends ReportBase, CurrencyInfo {
   mrr: {
-    /** MRR at the end of the range's last day. */
+    /** MRR at the end of the range's last day (or now, if earlier). */
     current_cents: number;
+    /** `current_cents` split by currency, most first. */
+    by_currency: CurrencyMrr[];
     /** MRR at the start of the range's first day. */
     at_range_start_cents: number;
-    /** MRR at the end of each month end inside the range. */
+    /** MRR at the end of each month end inside the range (or now, if earlier). */
     month_ends: MrrPoint[];
     movements: MrrMovements;
   };
   subscriptions: {
-    /** Paying at the end of the range's last day. */
+    /** Paying at the end of the range's last day (or now, if earlier). */
     active_paid: number;
-    /** Trialing at the end of the range's last day. */
+    /** Trialing at the end of the range's last day (or now, if earlier). */
     active_trials: number;
     /** Paying at the start of the range. */
     paid_at_range_start: number;
@@ -396,9 +442,12 @@ export interface OverviewReport extends ReportBase {
   /** Current period only. */
   retention: RetentionHeadline[];
   web: { visitors: Comparison; pageviews: Comparison };
-  revenue: {
-    /** At the end of each period's last day. */
+  /** Money in `currency`, or mixed when it is null (as in `RevenueReport`). */
+  revenue: CurrencyInfo & {
+    /** At the end of each period's last day (or now, if earlier). */
     mrr_cents: Comparison;
+    /** Current MRR split by currency, most first. */
+    mrr_by_currency: CurrencyMrr[];
     active_subscriptions: Comparison;
     gross_cents: Comparison;
     net_cents: Comparison;
@@ -491,6 +540,21 @@ export interface LedgerRow {
   period_start: string | null;
   period_end: string | null;
   amount_cents: number | null;
+  /** As recorded; normalized with `normalizeCurrency`. */
+  currency: string | null;
+}
+
+/** A `refunded` or `refund_reversed` row, for matching reversals to refunds. */
+export interface RefundRow {
+  /** `provider_subscription_id`, else `provider_event_id`. */
+  lineage: string;
+  event_type: string;
+  /** ISO 8601 UTC. */
+  occurred_at: string;
+  amount_cents: number | null;
+  currency: string | null;
+  /** The row occurred inside the report's range. */
+  in_range: boolean;
 }
 
 /** Ledger rows in a range grouped by type and currency. */

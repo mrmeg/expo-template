@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 
 import { describeDb } from "../../__tests__/dbHarness";
-import type { IngestResponse, WireBatch } from "../../shared/wire";
+import { LIMITS, type IngestResponse, type WireBatch } from "../../shared/wire";
 import { createAnalyticsServer, type AnalyticsServer } from "../server";
 
 const CHROME_MAC =
@@ -178,7 +178,8 @@ describeDb("ingest", (ctx) => {
         [[stale, big]],
       );
       const byId = Object.fromEntries(rows.map((row) => [row.id, row]));
-      expect(new Date(byId[stale].occurred_at).toISOString()).toBe(clock.toISOString());
+      // Too old to trust: clamped to the start of the accepted window.
+      expect(new Date(byId[stale].occurred_at).getTime()).toBe(clock.getTime() - LIMITS.timestampMaxAgeMs);
       expect(byId[big].properties).toEqual({ _truncated: true });
     });
 
@@ -198,6 +199,77 @@ describeDb("ingest", (ctx) => {
       });
       const [row] = await ctx.raw.unsafe("select path, properties from analytics_events where id = $1", [id]);
       expect(row).toEqual({ path: "/ab", properties: { k: "v�" } });
+    });
+  });
+
+  describe("clock skew", () => {
+    async function stored(ids: string[]) {
+      const rows = await ctx.raw.unsafe(
+        "select id::text as id, occurred_at from analytics_events where id = any($1::uuid[])",
+        [ids],
+      );
+      const byId = new Map(rows.map((row) => [row.id, new Date(row.occurred_at).getTime()]));
+      return ids.map((id) => byId.get(id)!);
+    }
+
+    it("keeps entry and exit pages of a fast clock's visit in order", async () => {
+      clock = new Date("2026-06-05T12:00:00.000Z");
+      const fast = 10 * MINUTE;
+      const sessionId = `skew_${randomUUID()}`;
+      const ids = [randomUUID(), randomUUID(), randomUUID()];
+      const deviceNow = clock.getTime() + fast;
+      const batch: WireBatch = {
+        sent_at: new Date(deviceNow).toISOString(),
+        context: { platform: "web", anonymous_id: "anon_fast_clock" },
+        events: ["/a", "/b", "/c"].map((path, index) => ({
+          id: ids[index],
+          name: "$pageview",
+          ts: new Date(deviceNow - (2 - index) * 3 * MINUTE).toISOString(),
+          session_id: sessionId,
+          path,
+        })),
+      };
+      await send(batch);
+
+      expect(await stored(ids)).toEqual([0, 1, 2].map((index) => clock.getTime() - (2 - index) * 3 * MINUTE));
+      const [session] = await ctx.raw.unsafe("select * from analytics_sessions where id = $1", [sessionId]);
+      expect(session).toMatchObject({ entry_path: "/a", exit_path: "/c", pageviews: 3 });
+      expect(new Date(session.last_seen_at).getTime() - new Date(session.started_at).getTime()).toBe(6 * MINUTE);
+
+      // A retry from the same clock 2 minutes later carries a new sent_at: still deduped on id.
+      clock = new Date(clock.getTime() + 2 * MINUTE);
+      await expect(send({ ...batch, sent_at: new Date(deviceNow + 2 * MINUTE).toISOString() })).resolves.toMatchObject({
+        inserted: 0,
+        duplicates: 3,
+      });
+    });
+
+    it("keeps funnel steps of an old offline batch apart and in order", async () => {
+      clock = new Date("2026-06-05T13:00:00.000Z");
+      const ids = [randomUUID(), randomUUID()];
+      const queued = clock.getTime() - 45 * 24 * 60 * MINUTE;
+      await send({
+        sent_at: clock.toISOString(),
+        context: { anonymous_id: "anon_offline" },
+        events: [
+          { id: ids[0], name: "step_a", ts: new Date(queued).toISOString(), session_id: "offline_s" },
+          { id: ids[1], name: "step_b", ts: new Date(queued + MINUTE).toISOString(), session_id: "offline_s" },
+        ],
+      });
+      const [a, b] = await stored(ids);
+      expect(a).toBe(clock.getTime() - LIMITS.timestampMaxAgeMs);
+      expect(b).toBeGreaterThan(a);
+    });
+
+    it("stores in-window events untouched without sent_at", async () => {
+      clock = new Date("2026-06-05T14:00:00.000Z");
+      const ids = [randomUUID(), randomUUID()];
+      const times = [clock.getTime() - 3 * 24 * 60 * MINUTE, clock.getTime() + 2 * MINUTE];
+      await send({
+        context: { anonymous_id: "anon_legacy" },
+        events: ids.map((id, index) => ({ id, name: "legacy", ts: new Date(times[index]).toISOString(), session_id: "legacy_s" })),
+      });
+      expect(await stored(ids)).toEqual(times);
     });
   });
 

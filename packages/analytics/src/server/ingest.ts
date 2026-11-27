@@ -40,22 +40,91 @@ export interface PreparedEvent {
   props: Record<string, unknown> | null;
 }
 
+/**
+ * `event.occurredAt` is the client's time as sent, or server time when
+ * unparseable (`restamped`). Window and clock-skew correction is a batch step
+ * (`correctBatchTimes`), because correcting events one by one reorders them.
+ */
 export type EventCheck =
-  | { ok: true; event: PreparedEvent; truncated: boolean; restamped: boolean }
+  | { ok: true; event: PreparedEvent; clientTime: number | null; truncated: boolean; restamped: boolean }
   | { ok: false; reason: string };
 
-/**
- * Client clocks drift and offline queues replay late, so a timestamp outside
- * the window (or unparseable) is replaced with server time rather than
- * rejected: the event still happened, only its time is unknown.
- */
-function clientTime(value: unknown, now: Date): Date | null {
+/** Client times within this of the corrected time count as untouched; also the skew ignored as noise. */
+export const CLOCK_SKEW_TOLERANCE_MS = 5_000;
+/** A `sent_at` further off than this is a broken clock or a forged value, not skew. */
+const SENT_AT_MAX_SKEW_MS = 10 * 365.25 * 24 * 60 * 60 * 1000;
+
+function parseTime(value: unknown): number | null {
   if (typeof value !== "string") return null;
   const parsed = Date.parse(value);
-  if (Number.isNaN(parsed)) return null;
-  if (parsed < now.getTime() - LIMITS.timestampMaxAgeMs) return null;
-  if (parsed > now.getTime() + LIMITS.timestampMaxFutureMs) return null;
-  return new Date(parsed);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+export interface BatchTimes {
+  /** Stored time per event, in input order (epoch ms). */
+  times: number[];
+  /** True where the stored time differs from the client's by more than the tolerance. */
+  restamped: boolean[];
+  /** The offset applied to every parsed client time. */
+  offsetMs: number;
+}
+
+/**
+ * Clock-skew correction for one batch. Every event moves by the same offset,
+ * so order and spacing survive:
+ *
+ * - With a usable `sent_at`, offset = server now - sent_at, ignored within
+ *   `CLOCK_SKEW_TOLERANCE_MS`. This fixes fast and slow clocks alike and keeps
+ *   the true age of events queued offline.
+ * - Without one, a batch whose newest event is more than
+ *   `LIMITS.timestampMaxFutureMs` ahead is pulled back so that event lands at
+ *   server time; otherwise nothing moves.
+ *
+ * What is still out of range afterwards cannot be trusted: events older than
+ * `LIMITS.timestampMaxAgeMs` are clamped to the window's start, and events in
+ * the future to server time, one millisecond apart in their original order so
+ * a funnel still sees each step. Unparseable times get server time.
+ */
+export function correctBatchTimes(clientTimes: readonly (number | null)[], sentAt: unknown, now: number): BatchTimes {
+  const parsed = clientTimes.filter((time): time is number => time !== null);
+  const sent = parseTime(sentAt);
+  const trusted = sent !== null && Math.abs(now - sent) <= SENT_AT_MAX_SKEW_MS;
+
+  let offsetMs = 0;
+  if (trusted) {
+    const skew = now - sent;
+    if (Math.abs(skew) > CLOCK_SKEW_TOLERANCE_MS) offsetMs = skew;
+  } else if (parsed.length > 0) {
+    const newest = Math.max(...parsed);
+    if (newest > now + LIMITS.timestampMaxFutureMs) offsetMs = now - newest;
+  }
+
+  // With a trusted `sent_at` an event after it is nonsense; without one the
+  // usual future allowance applies, so in-window batches stay untouched.
+  const latest = now + (trusted ? CLOCK_SKEW_TOLERANCE_MS : LIMITS.timestampMaxFutureMs);
+  const earliest = now - LIMITS.timestampMaxAgeMs;
+  const times = clientTimes.map((time) => (time === null ? now : time + offsetMs));
+
+  const spread = (indexes: number[], base: number) => {
+    indexes
+      .sort((a, b) => times[a] - times[b] || a - b)
+      .forEach((index, rank) => {
+        times[index] = base + rank;
+      });
+  };
+  spread(
+    times.flatMap((time, index) => (clientTimes[index] !== null && time < earliest ? [index] : [])),
+    earliest,
+  );
+  spread(
+    times.flatMap((time, index) => (clientTimes[index] !== null && time > latest ? [index] : [])),
+    now,
+  );
+
+  const restamped = clientTimes.map(
+    (time, index) => time === null || Math.abs(times[index] - time) > CLOCK_SKEW_TOLERANCE_MS,
+  );
+  return { times, restamped, offsetMs };
 }
 
 /**
@@ -115,12 +184,13 @@ function checkEvent(raw: unknown, now: Date): EventCheck {
     }
   }
 
-  const time = clientTime(raw.ts, now);
+  const clientTime = parseTime(raw.ts);
   return {
     ok: true,
-    event: { id, name, occurredAt: time ?? new Date(now.getTime()), sessionId, path, props },
+    event: { id, name, occurredAt: new Date(clientTime ?? now.getTime()), sessionId, path, props },
+    clientTime,
     truncated,
-    restamped: time === null,
+    restamped: clientTime === null,
   };
 }
 
@@ -230,6 +300,7 @@ export async function ingestBatch(ctx: StoreContext, input: IngestInput): Promis
 
   const now = ctx.now();
   const events: PreparedEvent[] = [];
+  const clientTimes: (number | null)[] = [];
   const seen = new Set<string>();
   let rejected = 0;
   let duplicates = 0;
@@ -242,9 +313,15 @@ export async function ingestBatch(ctx: StoreContext, input: IngestInput): Promis
     } else {
       seen.add(check.event.id);
       events.push(check.event);
+      clientTimes.push(check.clientTime);
     }
   }
   if (events.length === 0) return { ok: true, response: { received, inserted: 0, rejected, duplicates } };
+
+  const { times } = correctBatchTimes(clientTimes, body.sent_at, now.getTime());
+  events.forEach((event, index) => {
+    event.occurredAt = new Date(times[index]);
+  });
 
   const context = isPlainObject(body.context) ? body.context : {};
   const acquisition = sanitizeAcquisition(body.acquisition);

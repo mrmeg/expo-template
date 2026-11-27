@@ -4,7 +4,8 @@
  * A report can hold several tables; `?table=<name>` picks one and the first
  * listed is the default (the report's main series). The names:
  *
- * - overview: `figures` (metric, current, previous, plus the rate columns for retention)
+ * - overview: `figures` (metric, current, previous, plus the rate columns for
+ *   retention and `currency` on money rows)
  * - product: `daily` (active users of both audiences and new users, one row per day)
  * - retention: `weekly` (one row per cohort and week), `daily` (one row per
  *   daily cohort and day N), `headline`
@@ -12,7 +13,12 @@
  * - acquisition: `channels`, `platforms`, `link_clicks`
  * - web: `daily`, `totals` (current and previous period), `breakdowns` (every
  *   dimension, long), or one dimension by name (`pages`, `referrers`, ...)
- * - revenue: `summary` (one row per figure), `mrr` (month ends), `event_counts`, `cancellations`
+ * - revenue: `summary` (one row per figure, `currency` on money rows, plus one
+ *   `mrr_cents` row per currency when the report is mixed), `mrr` (month ends,
+ *   with `currency`), `event_counts`, `cancellations`
+ *
+ * A money row's `currency` is the report's single currency, `mixed` when it
+ * sums several (never converted), or empty when there is no money at all.
  * - events: one table, the page of raw events
  *
  * Every `RateCell` becomes a rate column and a status column, so a figure whose
@@ -23,6 +29,7 @@
 import {
   WEB_BREAKDOWNS,
   type AcquisitionReport,
+  type CurrencyInfo,
   type EventPage,
   type FunnelReport,
   type OverviewReport,
@@ -64,6 +71,12 @@ export const CSV_TABLES: { readonly [K in ReportName]: readonly string[] } = {
   revenue: ["summary", "mrr", "event_counts", "cancellations"],
 };
 
+/** The `currency` cell for a money figure. */
+function moneyCurrency(info: CurrencyInfo): string | null {
+  if (info.currency !== null) return info.currency;
+  return info.currencies.length > 1 ? "mixed" : null;
+}
+
 function rate(cell: RateCell) {
   return { rate: cell.rate, status: cell.status, numerator: cell.numerator, denominator: cell.denominator };
 }
@@ -72,8 +85,9 @@ function rate(cell: RateCell) {
 
 function overviewFigures(report: OverviewReport): CsvTable {
   const rows: Record<string, unknown>[] = [];
-  const add = (metric: string, figure: { current: number; previous: number | null }) =>
-    rows.push({ metric, current: figure.current, previous: figure.previous });
+  const add = (metric: string, figure: { current: number; previous: number | null }, currency?: string | null) =>
+    rows.push({ metric, current: figure.current, previous: figure.previous, ...(currency === undefined ? {} : { currency }) });
+  const currency = moneyCurrency(report.revenue);
   for (const audience of ["all", "signed_in"] as const) {
     for (const window of ["dau", "wau", "mau"] as const) {
       add(`active_users_${audience}_${window}`, report.active_users[audience][window]);
@@ -82,10 +96,10 @@ function overviewFigures(report: OverviewReport): CsvTable {
   add("new_users", report.new_users);
   add("web_visitors", report.web.visitors);
   add("web_pageviews", report.web.pageviews);
-  add("mrr_cents", report.revenue.mrr_cents);
+  add("mrr_cents", report.revenue.mrr_cents, currency);
   add("active_subscriptions", report.revenue.active_subscriptions);
-  add("gross_cents", report.revenue.gross_cents);
-  add("net_cents", report.revenue.net_cents);
+  add("gross_cents", report.revenue.gross_cents, currency);
+  add("net_cents", report.revenue.net_cents, currency);
   for (const headline of report.retention) {
     const cell = rate(headline.cell);
     rows.push({
@@ -98,7 +112,7 @@ function overviewFigures(report: OverviewReport): CsvTable {
       pending: headline.pending,
     });
   }
-  return { columns: ["metric", "current", "previous", "status", "numerator", "denominator", "pending"], rows };
+  return { columns: ["metric", "current", "previous", "status", "numerator", "denominator", "pending", "currency"], rows };
 }
 
 // ── Product ──────────────────────────────────────────────────────────────────
@@ -254,8 +268,9 @@ function webTable(report: WebReport, table: string): CsvTable {
 // ── Revenue ──────────────────────────────────────────────────────────────────
 
 function revenueTable(report: RevenueReport, table: string): CsvTable {
+  const currency = moneyCurrency(report);
   if (table === "mrr") {
-    return { columns: ["date", "mrr_cents"], rows: report.mrr.month_ends.map((point) => ({ ...point })) };
+    return { columns: ["date", "mrr_cents", "currency"], rows: report.mrr.month_ends.map((point) => ({ ...point, currency })) };
   }
   if (table === "event_counts") {
     return {
@@ -268,18 +283,20 @@ function revenueTable(report: RevenueReport, table: string): CsvTable {
   }
   const rows: Record<string, unknown>[] = [];
   const add = (metric: string, value: number) => rows.push({ metric, value });
-  const addRate = (metric: string, cell: RateCell) => {
+  const addMoney = (metric: string, value: number, code: string | null = currency) => rows.push({ metric, value, currency: code });
+  const addRate = (metric: string, cell: RateCell, code?: string | null) => {
     const r = rate(cell);
-    rows.push({ metric, value: r.rate, status: r.status, numerator: r.numerator, denominator: r.denominator });
+    rows.push({ metric, value: r.rate, status: r.status, numerator: r.numerator, denominator: r.denominator, ...(code === undefined ? {} : { currency: code }) });
   };
   const { mrr, subscriptions, trial_conversion: trials, churn, revenue } = report;
-  add("mrr_cents", mrr.current_cents);
-  add("mrr_at_range_start_cents", mrr.at_range_start_cents);
-  add("mrr_new_cents", mrr.movements.new_cents);
-  add("mrr_expansion_cents", mrr.movements.expansion_cents);
-  add("mrr_contraction_cents", mrr.movements.contraction_cents);
-  add("mrr_churned_cents", mrr.movements.churned_cents);
-  add("mrr_net_new_cents", mrr.movements.net_new_cents);
+  addMoney("mrr_cents", mrr.current_cents);
+  if (report.currency === null) for (const part of mrr.by_currency) addMoney("mrr_cents", part.current_cents, part.currency);
+  addMoney("mrr_at_range_start_cents", mrr.at_range_start_cents);
+  addMoney("mrr_new_cents", mrr.movements.new_cents);
+  addMoney("mrr_expansion_cents", mrr.movements.expansion_cents);
+  addMoney("mrr_contraction_cents", mrr.movements.contraction_cents);
+  addMoney("mrr_churned_cents", mrr.movements.churned_cents);
+  addMoney("mrr_net_new_cents", mrr.movements.net_new_cents);
   add("active_paid", subscriptions.active_paid);
   add("active_trials", subscriptions.active_trials);
   add("paid_at_range_start", subscriptions.paid_at_range_start);
@@ -288,11 +305,12 @@ function revenueTable(report: RevenueReport, table: string): CsvTable {
   add("trials_pending", trials.pending);
   addRate("trial_conversion_rate", trials.cell);
   addRate("customer_churn_rate", churn.customer);
-  addRate("revenue_churn_rate", churn.revenue);
-  add("gross_cents", revenue.gross_cents);
-  add("refunds_cents", revenue.refunds_cents);
-  add("net_cents", revenue.net_cents);
-  return { columns: ["metric", "value", "status", "numerator", "denominator"], rows };
+  addRate("revenue_churn_rate", churn.revenue, currency);
+  addMoney("gross_cents", revenue.gross_cents);
+  addMoney("refunds_cents", revenue.refunds_cents);
+  addMoney("refunds_reversed_cents", revenue.refunds_reversed_cents);
+  addMoney("net_cents", revenue.net_cents);
+  return { columns: ["metric", "value", "status", "numerator", "denominator", "currency"], rows };
 }
 
 // ── Entry points ─────────────────────────────────────────────────────────────

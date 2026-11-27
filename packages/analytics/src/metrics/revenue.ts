@@ -23,7 +23,9 @@
  * paid `amount_cents` normalized to one month from that period's length
  * (`period_start`..`period_end`, or the row's `occurred_at` when the start is
  * missing), rounded to whole cents per subscription so totals and movements
- * add up exactly.
+ * add up exactly. Each subscription's MRR is in its latest paid row's
+ * currency; amounts in different currencies are never converted, so every
+ * total also comes split by currency and the report says when it is mixed.
  */
 
 import { DAY_MS } from "./dates";
@@ -38,7 +40,10 @@ import {
 } from "./definitions";
 import type {
   CountByKey,
+  CurrencyInfo,
+  CurrencyMrr,
   LedgerRow,
+  RefundRow,
   MrrMovements,
   RateCell,
   RevenueEventType,
@@ -68,6 +73,49 @@ export function monthlyAmount(amountCents: number, periodDays: number): number |
   return (amountCents * AVERAGE_MONTH_DAYS) / periodDays;
 }
 
+// ── Currencies ───────────────────────────────────────────────────────────────
+
+/** ISO 4217's "no currency" code, for ledger rows that recorded none. */
+export const UNKNOWN_CURRENCY = "XXX";
+
+/** A ledger currency as an upper-case ISO code; `XXX` when missing. */
+export function normalizeCurrency(value: string | null | undefined): string {
+  const code = typeof value === "string" ? value.trim().toUpperCase() : "";
+  return code.length > 0 ? code : UNKNOWN_CURRENCY;
+}
+
+function addTo(map: Map<string, number>, key: string, amount: number): void {
+  map.set(key, (map.get(key) ?? 0) + amount);
+}
+
+/** Per-currency amounts, largest first, then by code. */
+export function currencyBreakdown(byCurrency: Map<string, number>): CurrencyMrr[] {
+  return [...byCurrency]
+    .map(([currency, current_cents]) => ({ currency, current_cents }))
+    .sort((a, b) => b.current_cents - a.current_cents || a.currency.localeCompare(b.currency));
+}
+
+/**
+ * The currencies a report's money figures involve, ordered by current MRR,
+ * then MRR at the start, then code; `currency` is the single one, or null when
+ * there is more than one. `others` are currencies that contribute to a figure
+ * but not to either MRR snapshot (month ends, revenue in the range).
+ */
+export function summarizeCurrencies(input: {
+  current: Map<string, number>;
+  start: Map<string, number>;
+  others: Iterable<string>;
+}): CurrencyInfo {
+  const all = new Set<string>([...input.current.keys(), ...input.start.keys(), ...input.others]);
+  const currencies = [...all].sort(
+    (a, b) =>
+      (input.current.get(b) ?? 0) - (input.current.get(a) ?? 0) ||
+      (input.start.get(b) ?? 0) - (input.start.get(a) ?? 0) ||
+      a.localeCompare(b),
+  );
+  return { currency: currencies.length === 1 ? currencies[0] : null, currencies };
+}
+
 // ── Replay ───────────────────────────────────────────────────────────────────
 
 export type SubscriptionStatus = "trialing" | "active" | "ended";
@@ -78,6 +126,8 @@ export interface SubscriptionState {
   status: SubscriptionStatus;
   /** Whole cents; 0 unless `active`. */
   mrr_cents: number;
+  /** The latest paid row's currency (normalized); for a trial, its own row's. */
+  currency: string;
 }
 
 /** A ledger row parsed for replay (instants as epoch ms). */
@@ -89,6 +139,7 @@ export interface ReplayRow {
   periodStart: number | null;
   periodEnd: number | null;
   amount: number | null;
+  currency: string;
 }
 
 /** Ledger rows grouped by subscription and sorted for replay. */
@@ -123,6 +174,7 @@ export function indexLedger(rows: LedgerRow[]): SubscriptionLedger {
       periodStart: parseInstant(row.period_start),
       periodEnd: parseInstant(row.period_end),
       amount: row.amount_cents,
+      currency: normalizeCurrency(row.currency),
     });
     bySubscription.set(row.provider_subscription_id, list);
   }
@@ -143,6 +195,7 @@ export function replaySubscription(id: string, rows: ReplayRow[], asOfMs: number
   let trialClose = 0;
   let paid: ReplayRow | null = null;
   let userId: string | null = null;
+  let currency = UNKNOWN_CURRENCY;
 
   for (const row of rows) {
     if (row.at >= asOfMs) break;
@@ -152,12 +205,14 @@ export function replaySubscription(id: string, rows: ReplayRow[], asOfMs: number
         phase = "trialing";
         trialClose = trialCloseMs(row);
         beforeRefund = null;
+        currency = row.currency;
       }
     } else if (isPaidEventType(row.type)) {
       if (row.periodEnd === null) continue; // one-time purchase
       phase = "paid";
       paid = row;
       beforeRefund = null;
+      currency = row.currency;
     } else if (row.type === "expired") {
       phase = phase === "none" ? "none" : "ended";
       beforeRefund = null;
@@ -176,20 +231,22 @@ export function replaySubscription(id: string, rows: ReplayRow[], asOfMs: number
 
   if (phase === "none") return null;
   if (phase === "trialing") {
-    return { id, user_id: userId, status: asOfMs < trialClose ? "trialing" : "ended", mrr_cents: 0 };
+    return { id, user_id: userId, status: asOfMs < trialClose ? "trialing" : "ended", mrr_cents: 0, currency };
   }
   if (phase === "paid" && paid !== null && paid.periodEnd !== null && asOfMs < paid.periodEnd + GRACE_DAYS * DAY_MS) {
     const periodDays = (paid.periodEnd - (paid.periodStart ?? paid.at)) / DAY_MS;
     const monthly = paid.amount === null ? 0 : monthlyAmount(paid.amount, periodDays) ?? 0;
-    return { id, user_id: userId, status: "active", mrr_cents: Math.round(monthly) };
+    return { id, user_id: userId, status: "active", mrr_cents: Math.round(monthly), currency };
   }
-  return { id, user_id: userId, status: "ended", mrr_cents: 0 };
+  return { id, user_id: userId, status: "ended", mrr_cents: 0, currency };
 }
 
 export interface RevenueSnapshot {
   mrr_cents: number;
   active_paid: number;
   active_trials: number;
+  /** MRR per currency, with an entry for every currency an active subscription is in. */
+  mrr_by_currency: Map<string, number>;
   /** Every subscription with a state at the instant. */
   subscriptions: Map<string, SubscriptionState>;
 }
@@ -200,6 +257,7 @@ export function revenueSnapshot(ledger: SubscriptionLedger, asOfMs: number): Rev
   let mrr = 0;
   let activePaid = 0;
   let activeTrials = 0;
+  const byCurrency = new Map<string, number>();
   for (const [id, rows] of ledger.bySubscription) {
     const state = replaySubscription(id, rows, asOfMs);
     if (!state) continue;
@@ -207,11 +265,12 @@ export function revenueSnapshot(ledger: SubscriptionLedger, asOfMs: number): Rev
     if (state.status === "active") {
       activePaid += 1;
       mrr += state.mrr_cents;
+      addTo(byCurrency, state.currency, state.mrr_cents);
     } else if (state.status === "trialing") {
       activeTrials += 1;
     }
   }
-  return { mrr_cents: mrr, active_paid: activePaid, active_trials: activeTrials, subscriptions };
+  return { mrr_cents: mrr, active_paid: activePaid, active_trials: activeTrials, mrr_by_currency: byCurrency, subscriptions };
 }
 
 /**
@@ -310,29 +369,80 @@ export function computeTrialConversion(
 
 // ── Range totals ─────────────────────────────────────────────────────────────
 
+/**
+ * Amounts restored by `refund_reversed` rows inside the range, per currency.
+ * Rows are replayed per lineage (subscription id, else `provider_event_id`) in
+ * time order, refunds before reversals at one instant. Each reversal cancels
+ * the most recent refund before it that no earlier reversal cancelled: it
+ * restores its own amount when it has one (in its own currency), else the
+ * refunded amount (in the refund's currency), else nothing. A reversal whose
+ * refund fell before the range still counts, inside the range, where it
+ * happened.
+ */
+export function computeRefundReversals(rows: RefundRow[]): Map<string, number> {
+  const byLineage = new Map<string, { row: RefundRow; at: number; reversal: boolean }[]>();
+  for (const row of rows) {
+    if (row.event_type !== "refunded" && row.event_type !== "refund_reversed") continue;
+    const list = byLineage.get(row.lineage) ?? [];
+    list.push({ row, at: Date.parse(row.occurred_at), reversal: row.event_type === "refund_reversed" });
+    byLineage.set(row.lineage, list);
+  }
+  const restored = new Map<string, number>();
+  for (const list of byLineage.values()) {
+    list.sort((a, b) => a.at - b.at || Number(a.reversal) - Number(b.reversal));
+    const open: RefundRow[] = [];
+    for (const entry of list) {
+      if (!entry.reversal) {
+        open.push(entry.row);
+        continue;
+      }
+      const refund = open.pop();
+      if (!entry.row.in_range) continue;
+      if (entry.row.amount_cents !== null && entry.row.amount_cents !== 0) {
+        addTo(restored, normalizeCurrency(entry.row.currency), Math.abs(entry.row.amount_cents));
+      } else if (refund && refund.amount_cents !== null) {
+        addTo(restored, normalizeCurrency(refund.currency), Math.abs(refund.amount_cents));
+      }
+    }
+  }
+  return restored;
+}
+
 export interface RevenueTotalsSummary {
   totals: RevenueTotals;
   event_counts: Record<RevenueEventType, number>;
-  /** More than one non-null currency appeared. */
-  mixed_currencies: boolean;
+  /** Net revenue per currency, for every currency with money in the range. */
+  net_by_currency: Map<string, number>;
 }
 
-/** Gross (positive amounts), refunds (negative amounts, as a positive number), net, and counts per type. */
-export function summarizeRevenueTotals(rows: RevenueTotalsRow[]): RevenueTotalsSummary {
+/**
+ * Gross (positive amounts), refunds net of reversals, the reversed amount, net,
+ * and counts per type. `refund_reversed` rows add to neither gross nor
+ * refunds: their effect is `reversed`, from `computeRefundReversals`.
+ */
+export function summarizeRevenueTotals(rows: RevenueTotalsRow[], reversed: Map<string, number> = new Map()): RevenueTotalsSummary {
   const event_counts = Object.fromEntries(REVENUE_EVENT_TYPES.map((type) => [type, 0])) as Record<RevenueEventType, number>;
-  const currencies = new Set<string>();
+  const net = new Map<string, number>();
   let gross = 0;
   let refunds = 0;
   for (const row of rows) {
     if (row.event_type in event_counts) event_counts[row.event_type as RevenueEventType] += row.events;
-    if (row.currency !== null) currencies.add(row.currency.toLowerCase());
+    if (row.event_type === "refund_reversed") continue;
+    if (row.gross_cents === 0 && row.refunds_cents === 0) continue;
     gross += row.gross_cents;
     refunds += row.refunds_cents;
+    addTo(net, normalizeCurrency(row.currency), row.gross_cents - row.refunds_cents);
   }
+  let restored = 0;
+  for (const [currency, amount] of reversed) {
+    restored += amount;
+    addTo(net, currency, amount);
+  }
+  const refundsNet = refunds - restored;
   return {
-    totals: { gross_cents: gross, refunds_cents: refunds, net_cents: gross - refunds },
+    totals: { gross_cents: gross, refunds_cents: refundsNet, refunds_reversed_cents: restored, net_cents: gross - refundsNet },
     event_counts,
-    mixed_currencies: currencies.size > 1,
+    net_by_currency: net,
   };
 }
 
@@ -347,4 +457,5 @@ export const REVENUE_NOTES: readonly string[] = [
   NOTES.revenueOneTime,
   NOTES.revenueActive,
   NOTES.trialPending,
+  NOTES.revenueNow,
 ];

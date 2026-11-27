@@ -41,6 +41,9 @@ describeDb("product report", (ctx) => {
       { name: "app_open", at: "2026-11-26T23:30:00Z", anon: "dev-x" },
       // 03:00 UTC on 11-27 is still 11-26 in Los Angeles.
       { name: "app_open", at: "2026-11-27T03:00:00Z", user: "old" },
+      // The host's own webhook events (platform "server") are not activity by default.
+      { name: "renewal_recorded", at: "2026-11-26T10:00:00Z", user: "srv", platform: "server" },
+      { name: "renewal_recorded", at: "2026-11-26T11:00:00Z", user: "bob", platform: "server" },
       // Another app's rows never count.
       { name: "app_open", at: "2026-11-26T10:00:00Z", user: "alice", app: "other_app" },
     ]);
@@ -86,6 +89,15 @@ describeDb("product report", (ctx) => {
     // old's 03:00 UTC event and dev-x's 23:30 UTC event both land on 11-26 there.
     expect(report.active_users.all.last.dau).toBe(2);
     expect(report.active_users.signed_in.last.dau).toBe(1);
+  });
+
+  it("leaves server-recorded events out of activity unless activeEvents names them", async () => {
+    const byDefault = await getProductReport(deps(ctx.sql, names, CONFIG), RANGE);
+    expect(byDefault.active_users.signed_in.last.dau).toBe(0);
+    expect(byDefault.notes.some((note) => note.includes("platform \"server\""))).toBe(true);
+    const named = await getProductReport(deps(ctx.sql, names, { activeEvents: ["renewal_recorded"] }), RANGE);
+    expect(named.active_users.signed_in.last).toEqual({ dau: 2, wau: 2, mau: 2 });
+    expect(named.notes.some((note) => note.includes("platform \"server\""))).toBe(false);
   });
 
   it("counts only the configured active events", async () => {

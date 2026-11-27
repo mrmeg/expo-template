@@ -128,6 +128,42 @@ describeDb("server API", (ctx) => {
     ]);
   });
 
+  it("normalizes hand-built revenue rows so a differently cased replay still dedupes", async () => {
+    const providerEventId = `evt_${randomUUID()}`;
+    const handBuilt: RevenueEventInput = {
+      userId: "u3",
+      provider: "Stripe",
+      eventType: "Renewed",
+      providerEventId,
+      store: "WEB",
+      periodType: "NORMAL",
+      environment: "PRODUCTION",
+      amountCents: 500,
+      currency: "EUR",
+      occurredAt: clock,
+    };
+    await expect(server.recordRevenueEvents([handBuilt])).resolves.toBe(1);
+    await expect(
+      server.recordRevenueEvents([{ ...handBuilt, provider: "stripe", eventType: "renewed", environment: "production" }]),
+    ).resolves.toBe(0);
+    const [stored] = await ctx.raw.unsafe(
+      "select provider, event_type, store, period_type, environment, currency from analytics_revenue_events where provider_event_id = $1",
+      [providerEventId],
+    );
+    expect(stored).toEqual({
+      provider: "stripe",
+      event_type: "renewed",
+      store: "web",
+      period_type: "normal",
+      environment: "production",
+      currency: "eur",
+    });
+
+    await expect(server.recordRevenueEvents([{ ...handBuilt, providerEventId: "evt_x", eventType: "renewal" }])).rejects.toThrow(
+      /providerEventId "evt_x".*eventType "renewal"/,
+    );
+  });
+
   it("records a link click and redirects, but not for crawlers or HEAD", async () => {
     const go = (ua: string, method = "GET") =>
       server.handle(

@@ -3,7 +3,9 @@
  * `platform = 'web'`.
  *
  * - Visitors: distinct `anonymous_id`. Visits: sessions. Pageviews: the sum of
- *   `sessions.pageviews` (for pages, `$pageview` events by `path`).
+ *   `sessions.pageviews`. The pages list counts the `$pageview` events of those
+ *   same sessions by `path` (including views after midnight in a session that
+ *   started in the range), so it reconciles with the totals.
  * - Views per visit: pageviews over visits.
  * - Bounce rate: sessions with `pageviews <= 1` and `custom_events = 0`, over
  *   sessions.

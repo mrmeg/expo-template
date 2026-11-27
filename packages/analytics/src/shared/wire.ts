@@ -42,9 +42,15 @@ export const LIMITS = {
   propertiesMaxKeys: 50,
   batchMaxEvents: 100,
   bodyMaxBytes: 1_048_576,
-  /** Older client timestamps are replaced with server time. */
+  /**
+   * Events still older than this after the batch's clock correction are
+   * clamped to the window's start, in their original order, 1 ms apart.
+   */
   timestampMaxAgeMs: 30 * 24 * 60 * 60 * 1000,
-  /** Timestamps further ahead than this are replaced with server time. */
+  /**
+   * A batch without `sent_at` whose newest event is further ahead than this is
+   * shifted back as a whole, so that event lands at server time.
+   */
   timestampMaxFutureMs: 5 * 60 * 1000,
   utmMaxLength: 100,
   referrerMaxLength: 512,
@@ -110,6 +116,16 @@ export interface WireAcquisition {
 }
 
 export interface WireBatch {
+  /**
+   * ISO 8601 client time at the moment this request is sent, set afresh on
+   * every attempt (a retried or persisted batch gets a new value). The server
+   * reads the client's clock offset from it and shifts every event in the
+   * batch by that one offset, so a fast or slow device clock is corrected
+   * without reordering events, and events queued offline keep their true age.
+   * Optional: without it the server only pulls a batch whose newest event is
+   * in the future back to server time.
+   */
+  sent_at?: string;
   context?: WireContext;
   acquisition?: WireAcquisition;
   events: WireEvent[];

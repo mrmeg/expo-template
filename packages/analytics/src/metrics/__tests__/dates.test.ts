@@ -14,6 +14,7 @@ import {
   zonedDate,
   zonedDayEnd,
   zonedDayStart,
+  zonedWallTime,
 } from "../dates";
 
 describe("calendar dates", () => {
@@ -74,6 +75,34 @@ describe("zones", () => {
     // Springs forward on 2026-03-08: midnight is still EST.
     expect(new Date(zonedDayStart("2026-03-08", "America/New_York")).toISOString()).toBe("2026-03-08T05:00:00.000Z");
     expect(new Date(zonedDayEnd("2026-03-08", "America/New_York")).toISOString()).toBe("2026-03-09T04:00:00.000Z");
+  });
+
+  // Expected values are Postgres's `day::date::timestamp at time zone tz`.
+  it.each([
+    // Daylight saving starts at midnight: the day begins at 01:00 local, after the gap.
+    ["America/Santiago", "2026-09-06", "2026-09-06T04:00:00.000Z"],
+    ["America/Havana", "2026-03-08", "2026-03-08T05:00:00.000Z"],
+    // A normal spring-forward at 02:00 and a fall-back at 02:00.
+    ["America/New_York", "2026-03-08", "2026-03-08T05:00:00.000Z"],
+    ["America/New_York", "2026-11-01", "2026-11-01T04:00:00.000Z"],
+    // Fall-back at midnight: the repeated hour is the evening before, midnight happens once.
+    ["America/Santiago", "2026-04-05", "2026-04-05T04:00:00.000Z"],
+    // Half-hour offsets, with and without daylight saving.
+    ["Asia/Kolkata", "2026-11-27", "2026-11-26T18:30:00.000Z"],
+    ["Australia/Adelaide", "2026-10-04", "2026-10-03T14:30:00.000Z"],
+    ["Australia/Lord_Howe", "2026-10-04", "2026-10-03T13:30:00.000Z"],
+  ])("starts %s's %s where Postgres does", (zone, day, expected) => {
+    const start = zonedDayStart(day, zone);
+    expect(new Date(start).toISOString()).toBe(expected);
+    expect(zonedDate(start, zone)).toBe(day);
+    expect(zonedDate(start - 1, zone)).toBe(addDays(day, -1));
+  });
+
+  it("resolves gaps and overlaps inside a day as Postgres does", () => {
+    // 02:30 on spring-forward day does not exist: read with the offset before the jump.
+    expect(new Date(zonedWallTime(Date.parse("2026-03-08T02:30:00Z"), "America/New_York")).toISOString()).toBe("2026-03-08T07:30:00.000Z");
+    // 01:30 on fall-back day happens twice: the later one.
+    expect(new Date(zonedWallTime(Date.parse("2026-11-01T01:30:00Z"), "America/New_York")).toISOString()).toBe("2026-11-01T06:30:00.000Z");
   });
 
   it("recognizes zones", () => {

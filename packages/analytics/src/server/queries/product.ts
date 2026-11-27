@@ -6,7 +6,7 @@
  */
 
 import {
-  INACTIVE_EVENTS,
+  DEFAULT_INACTIVE,
   addDays,
   PAID_EVENT_TYPES,
   type ActivityRow,
@@ -24,13 +24,15 @@ import {
   activeEventsFilter,
   dayOf,
   dayStart,
+  elapsedDays,
   inRange,
   scopedEvents,
   type QueryScope,
 } from "./context";
 
 /**
- * Distinct `(actor, day, signed_in)` for activity events in the scope's range.
+ * Distinct `(actor, day, signed_in)` for activity events in the scope's range
+ * (`activeEvents`, or by default all but `$session_end` and server-platform events).
  * `signed_in` marks rows from events that carried a `user_id`.
  */
 export async function fetchActivityRows(
@@ -40,7 +42,7 @@ export async function fetchActivityRows(
   activeEvents: readonly string[] | null,
 ): Promise<ActivityRow[]> {
   const params = new QueryParams(scope);
-  const filter = activeEventsFilter(params, activeEvents, INACTIVE_EVENTS);
+  const filter = activeEventsFilter(params, activeEvents, DEFAULT_INACTIVE);
   return sql.query<ActivityRow>(
     `with ${scopedEvents(names, `${inRange("e.occurred_at")} and ${filter}`)}
     select distinct actor, ${dayOf("occurred_at")} as day, (user_id is not null) as signed_in
@@ -89,7 +91,7 @@ export async function fetchCohortActivity(
   const params = new QueryParams(scope);
   const cohortStart = dayStart(params.add(cohort.from));
   const cohortEnd = dayStart(params.add(addDays(cohort.to, 1)));
-  const filter = activeEventsFilter(params, activeEvents, INACTIVE_EVENTS);
+  const filter = activeEventsFilter(params, activeEvents, DEFAULT_INACTIVE);
   return sql.query<UserActivityRow>(
     `with cohort as (
       select u.user_id from ${names.t.users} u
@@ -112,8 +114,9 @@ export interface ChannelCohortOptions {
  * Users first seen in the range, by `users.channel`, with what they went on to
  * do:
  * - `activated`: the activation event (theirs, or from a device stitched to
- *   them) no later than `withinDays` after first seen. An event before sign-up
- *   on a stitched device counts.
+ *   them) no later than `withinDays` elapsed days (86400 seconds each, not
+ *   calendar days in any zone) after first seen. An event before sign-up on a
+ *   stitched device counts.
  * - `pending`: not activated and `first_seen_at + withinDays` is after `now`.
  * - `trial_started` and `paid`: a production `trial_started`, or paid
  *   (`purchased`, `trial_converted`, `renewed`), ledger row for the user at any
@@ -136,7 +139,7 @@ export async function fetchChannelCohorts(
   let activationJoin = "";
   if (activation) {
     const event = `${params.add(activation.event)}::text`;
-    const window = `make_interval(days => ${params.add(activation.withinDays)}::int)`;
+    const window = elapsedDays(params.add(activation.withinDays));
     activationCtes = `,
     act_events as (
       select e.id, e.user_id, e.anonymous_id, e.occurred_at

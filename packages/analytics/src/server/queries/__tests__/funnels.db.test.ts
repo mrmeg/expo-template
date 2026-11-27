@@ -50,6 +50,21 @@ describeDb("funnel report", (ctx) => {
     expect(short.open).toBe(0);
   });
 
+  it("counts steps recorded at the same instant whatever their ids", async () => {
+    const at = "2026-11-12T08:00:00Z";
+    await insertEvents(ctx.sql, names, [
+      // For t1 the second step has the lower id, for t2 the higher one.
+      { id: "00000000-0000-4000-8000-000000000002", name: "tie_a", at, user: "t1" },
+      { id: "00000000-0000-4000-8000-000000000001", name: "tie_b", at, user: "t1" },
+      { id: "00000000-0000-4000-8000-000000000003", name: "tie_a", at, user: "t2" },
+      { id: "00000000-0000-4000-8000-000000000004", name: "tie_b", at, user: "t2" },
+    ]);
+    const config = { funnels: [{ key: "tie", name: "Tie", steps: ["tie_a", "tie_b"] }] };
+    const [tie] = (await getFunnelReport(deps(ctx.sql, names, config), RANGE)).funnels;
+    expect(tie.steps.map((s) => s.actors)).toEqual([2, 2]);
+    expect(tie.steps[1].median_seconds_from_previous).toBe(0);
+  });
+
   it("selects one funnel by key and rejects an unknown key", async () => {
     const report = await getFunnelReport(deps(ctx.sql, names, CONFIG), RANGE, { key: "short" });
     expect(report.funnels.map((f) => f.key)).toEqual(["short"]);

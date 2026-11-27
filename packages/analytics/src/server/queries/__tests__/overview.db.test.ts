@@ -60,7 +60,10 @@ describeDb("overview report and raw events", (ctx) => {
     ]);
     expect(report.web).toEqual({ visitors: { current: 1, previous: 2 }, pageviews: { current: 2, previous: 5 } });
     expect(report.revenue).toEqual({
+      currency: "USD",
+      currencies: ["USD"],
       mrr_cents: { current: 2999, previous: 999 },
+      mrr_by_currency: [{ currency: "USD", current_cents: 2999 }],
       active_subscriptions: { current: 2, previous: 1 },
       gross_cents: { current: 2000, previous: 999 },
       net_cents: { current: 2000, previous: 999 },
@@ -112,6 +115,11 @@ describeDb("zone arithmetic agrees with Postgres", (ctx) => {
     ["2026-04-05", "Australia/Lord_Howe"],
     ["2026-11-27", "Asia/Kolkata"],
     ["2026-12-31", "Pacific/Auckland"],
+    // Daylight saving that starts (or ends) at midnight.
+    ["2026-09-06", "America/Santiago"],
+    ["2026-04-05", "America/Santiago"],
+    ["2026-03-08", "America/Havana"],
+    ["2026-10-04", "Australia/Adelaide"],
   ];
 
   it.each(cases)("start of %s in %s", async (day, zone) => {

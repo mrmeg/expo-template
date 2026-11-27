@@ -15,6 +15,14 @@ export const DEFAULT_RETENTION_DAYS: readonly number[] = [1, 7, 30, 90];
 export const DEFAULT_FUNNEL_WINDOW_DAYS = 7;
 /** Events that never count as activity unless `activeEvents` lists them. */
 export const INACTIVE_EVENTS: readonly string[] = [RESERVED_EVENTS.sessionEnd];
+/**
+ * Platforms whose events are not activity by default: `server` events are the
+ * host's own (`track()` from a webhook or job), not the user using the app. An
+ * event named in `activeEvents` counts whatever its platform.
+ */
+export const INACTIVE_PLATFORMS: readonly string[] = ["server"];
+/** The default activity filter: every event except these names and platforms. */
+export const DEFAULT_INACTIVE = { events: INACTIVE_EVENTS, platforms: INACTIVE_PLATFORMS } as const;
 /** Days in a `bracket` retention window: [N, N + 6]. */
 export const BRACKET_SPAN_DAYS = 7;
 export const WEEKLY_COHORT_COUNT = 12;
@@ -75,7 +83,7 @@ export const LEDGER_REPLAY_RANK: Readonly<Record<string, number>> = {
 export interface ResolvedMetricsConfig {
   timezone: string;
   activation: { event: string; withinDays: number } | null;
-  /** Null means every event except `INACTIVE_EVENTS`. */
+  /** Null means every event except `INACTIVE_EVENTS` and events from `INACTIVE_PLATFORMS`. */
   activeEvents: readonly string[] | null;
   retentionDays: number[];
   funnels: Required<FunnelDefinition>[];
@@ -140,6 +148,7 @@ export const NOTES = {
   population: "Users marked excluded are left out of every figure, together with their events, sessions and revenue.",
   stitching: "Events a device sent before signing in count toward the user who later signed in on it.",
   activeUsers: "Signed-in active users count events that carried a user id; all active users also count anonymous devices.",
+  activity: "Activity is every event except session ends and events the server recorded itself (platform \"server\"), unless activeEvents names the events.",
   retentionHeadline:
     "Headline retention counts only users whose day-N window has closed; users still inside it are reported as pending.",
   funnelOpen: "Actors whose conversion window is still open may still complete later steps.",
@@ -148,6 +157,8 @@ export const NOTES = {
   revenueProduction: "Only production ledger rows count; sandbox purchases are left out.",
   revenueOneTime: "One-time purchases count toward revenue and never toward MRR.",
   revenueActive: `A subscription counts as paying until it expires, is refunded, or its paid period ended more than ${GRACE_DAYS} days ago without a renewal.`,
-  revenueCurrency: "Amounts are summed as recorded, without currency conversion, and the ledger holds more than one currency.",
+  revenueCurrency: (currencies: readonly string[]) =>
+    `Money figures here combine ${currencies.join(", ")}: amounts are added as recorded, never converted, so read the per-currency MRR instead of a combined total.`,
+  revenueNow: "MRR and subscription counts are taken at the end of the period's last day, or now if that is still to come.",
   trialPending: `Trials still inside their window (period end plus ${GRACE_DAYS} days, or ${TRIAL_FALLBACK_WINDOW_DAYS} days when no period end is known) are pending and left out of the conversion rate.`,
 } as const;

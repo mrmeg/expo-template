@@ -181,17 +181,37 @@ export function zonedDate(instant: Date | number, timezone: string): string {
   return `${String(wall.year).padStart(4, "0")}-${String(wall.month).padStart(2, "0")}-${String(wall.day).padStart(2, "0")}`;
 }
 
+const PROBE_MS = 15 * 3_600_000;
+
 /**
- * The instant (epoch ms) at which `day` begins in `timezone`, matching
- * Postgres's `day::date::timestamp at time zone tz`. The offset is read twice
- * because the first guess can sit on the other side of a DST change.
+ * The instant (epoch ms) a wall-clock time in `timezone` names, resolved the
+ * way Postgres's `timestamp at time zone tz` resolves it:
+ * - Normal time: the one instant whose local time it is.
+ * - In a gap (clocks jumped forward over it, as at midnight in Santiago or
+ *   Havana on their spring-forward day): read with the offset in force before
+ *   the jump, so it lands after the gap.
+ * - In an overlap (clocks went back and it happened twice): the later of the two.
+ * Offsets are probed 15 hours either side, which brackets every real zone's
+ * offset; no zone changes offset twice within that span.
+ */
+export function zonedWallTime(wallMs: number, timezone: string): number {
+  const before = offsetMs(wallMs - PROBE_MS, timezone);
+  const after = offsetMs(wallMs + PROBE_MS, timezone);
+  const valid = [...new Set([before, after])]
+    .map((offset) => wallMs - offset)
+    .filter((instant) => offsetMs(instant, timezone) === wallMs - instant);
+  if (valid.length === 0) return wallMs - before;
+  return Math.max(...valid);
+}
+
+/**
+ * The instant (epoch ms) at which `day` begins in `timezone`: exactly
+ * Postgres's `day::date::timestamp at time zone tz`, including zones where a
+ * DST change skips midnight (then the day begins at the first instant after
+ * the gap).
  */
 export function zonedDayStart(day: string, timezone: string): number {
-  const wallMidnight = parseIsoDate(day).getTime();
-  const first = offsetMs(wallMidnight, timezone);
-  const candidate = wallMidnight - first;
-  const second = offsetMs(candidate, timezone);
-  return second === first ? candidate : wallMidnight - second;
+  return zonedWallTime(parseIsoDate(day).getTime(), timezone);
 }
 
 /** The instant (epoch ms) at which `day` ends in `timezone`: the start of the next day. */

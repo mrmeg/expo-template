@@ -4,7 +4,9 @@
  * Actor: `coalesce(user_id, stitched user, anonymous_id)`, resolved in SQL (an
  * `anonymous_id` that appears on any event together with a `user_id` belongs
  * to that user, the earliest if several). Activity is any event in
- * `activeEvents` (default: every event except `$session_end`).
+ * `activeEvents`, on any platform; by default every event except
+ * `$session_end` and except events whose platform is `server` (the host's own
+ * `track()` calls, such as a renewal webhook, say nothing about the user).
  *
  * Reported twice:
  * - `signed_in`: distinct `user_id` on events that carried one.

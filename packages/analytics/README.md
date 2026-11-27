@@ -340,6 +340,12 @@ page is hidden or unloads, the queue goes out as one request of at most 60,000 b
 `navigator.sendBeacon` (or `fetch` with `keepalive` when `headers` is set, since
 a beacon cannot carry headers).
 
+Every batch carries `sent_at`, the client's time when the request was sent. The
+server shifts all of a batch's events by one clock offset, so a wrong device
+clock is corrected without reordering events or changing the gaps between them.
+Events still older than 30 days after that are clamped to the start of that
+window, in their original order.
+
 | Option | Default | Meaning |
 |---|---|---|
 | `endpoint` | required | URL of `POST <basePath>/e` |
@@ -536,7 +542,11 @@ await analytics.identify("staff_7", { excluded: true });
 `recordRevenueEvents(rows)` appends rows to the money ledger and resolves to how
 many were new. It is idempotent on `(app_id, provider, providerEventId,
 eventType)`, so a redelivered webhook writes nothing. Every row is validated
-before any is written; a bad row throws.
+before any is written; a bad row throws, naming the row and the value. `provider`,
+`eventType`, `environment`, `store` and `periodType` are trimmed and lowercased.
+`eventType` must be one of `REVENUE_EVENT_TYPES`, `environment` must be
+`production` or `sandbox` (default `production`), and `amountCents` must be an
+integer.
 
 | Field | Meaning |
 |---|---|
@@ -660,8 +670,15 @@ channel.
 These are the definitions the reports compute; check numbers against them.
 
 Conventions. Days are calendar dates cut in `metrics.timezone` (default UTC).
-A range is inclusive `from` to `to` (`YYYY-MM-DD`); the default is the 30 days
-ending today in that zone; at most 400 days. Money is integer cents. A rate is a
+A day starts at local midnight; where daylight saving skips midnight (Santiago,
+Havana) it starts at the first instant after the gap, exactly as Postgres's
+`date::timestamp at time zone zone` does, and the JavaScript side uses the same
+rule. A window of N days after an instant (activation, funnels, trial and
+subscription grace) is N × 86,400 seconds, never calendar days, so no report
+depends on the database connection's `TimeZone`. A range is inclusive `from` to
+`to` (`YYYY-MM-DD`); the default is the 30 days ending today in that zone; at
+most 400 days. Money is integer cents in the ledger's currency (see Currency
+below). A rate is a
 `RateCell`: `{ numerator, denominator, rate, status }`, where `status` is
 `measured` (rate is numerator over denominator), `not_yet` (the window has not
 closed, rate null) or `empty` (no denominator, rate null).
@@ -676,8 +693,10 @@ appears on any event together with a `user_id` belongs to that user (the one on
 the earliest such event if several), so events a device sent before signing in
 count toward the user who later signed in on it.
 
-**Activity.** An event in `activeEvents`; by default every event except
-`$session_end`.
+**Activity.** An event in `activeEvents`, whatever its platform; by default
+every event except `$session_end` and except events whose platform is `server`
+(what the host records itself with `track()`, such as a renewal webhook, which
+says nothing about the user opening the app).
 
 | Metric | Definition |
 |---|---|
@@ -685,27 +704,43 @@ count toward the user who later signed in on it.
 | Signed-in vs all | Two variants of every active-user figure. `signed_in`: distinct `user_id` on events that carried one. `all`: distinct actors, which includes anonymous devices. A cookieless web visitor gets a new id each UTC day, so in `all` one such visitor active on several days counts once per day in WAU and MAU. |
 | Stickiness | Average DAU over the range divided by MAU on the range's last day. |
 | New users | Users whose `first_seen_at` falls in the range. `first_seen_at` is the server time the user was first written (an ingested batch with that user resolved, or `identify`), moved earlier by `identify`'s `createdAt`. New users, activation and retention all cohort on it. |
-| Activation | Of users first seen in the range, those with the activation event (theirs, or from a device stitched to them, including before sign-up) no later than `withinDays` after `first_seen_at`. A user not yet activated whose window (`first_seen_at + withinDays`) is still open at report time is pending: counted in `pending` and left out of the denominator. Rate: `activated / (signups - pending)`. Null when `activation` is not configured. |
+| Activation | Of users first seen in the range, those with the activation event (theirs, or from a device stitched to them, including before sign-up) no later than `withinDays` elapsed days (× 86,400 seconds) after `first_seen_at`. A user not yet activated whose window (`first_seen_at + withinDays`) is still open at report time is pending: counted in `pending` and left out of the denominator. Rate: `activated / (signups - pending)`. Null when `activation` is not configured. |
 | Retention, modes | Cohort: users first seen on a day; that day is day 0. Activity counts directly or through a stitched device. For day N: `on` is active on exactly day N; `on_or_after` is active on day N or any later day up to today; `bracket` is active on any day in [N, N + 6]. The headline uses `on` for N under 7 and `bracket` from N = 7, unless the request passes `mode`. |
 | Retention, maturity | A window has closed once its last day is before today in the zone; an `on_or_after` window counts as closed once day N is over, though its value can still rise. A daily cohort cell is `not_yet` until the window has closed for the cohort's youngest member. The headline instead leaves users whose window is still open out of the denominator and reports them as `pending`, so a range ending today still has a measured headline. |
 | Retention, weekly grid | The last 12 ISO-week cohorts (Monday start), ending with the week containing the range end and clipped to it, by weeks 0 to 12, where week w is active on any day in [7w, 7w + 6] after first seen. |
-| Funnels | Ordered steps; other events may occur between them. An actor enters at their first step-1 event inside the range, and the window (`windowDays`, default 7, inclusive of its last instant) starts there. The actor counts at step k when they did steps 1..k in that order inside the window; each step takes the earliest qualifying event after the previous one. Per step: actors, conversion from step 1, conversion from the previous step, and the median seconds from the previous step. `open`: actors who have not finished and whose window is still open now. |
+| Funnels | Ordered steps; other events may occur between them. An actor enters at their first step-1 event inside the range, and the window (`windowDays`, default 7, inclusive of its last instant) starts there. The actor counts at step k when they did steps 1..k in that order inside the window; each step takes the earliest unused event of that step at or after the previous step's instant, so steps recorded at one instant count in step order whatever their row ids. Per step: actors, conversion from step 1, conversion from the previous step, and the median seconds from the previous step. `open`: actors who have not finished and whose window is still open now. |
 | Acquisition channel | Per user, from first-touch fields: `normalizeChannel(utm_source)`, else `normalizeChannel(self_reported_source)`, else the sign-up platform's default (`web_direct`, `app_store_organic`, `play_store_organic`), else `unknown`. Normalizing lowercases, trims, strips `www.`, folds aliases (`tt`, `tiktok.com` to `tiktok`; `ig` to `instagram`; `fb`, `meta` to `facebook`; `yt`, `youtu.be` to `youtube`; `twitter`, `t.co` to `x`, and others in `CHANNEL_ALIASES`), and otherwise turns runs of anything outside `[a-z0-9_-]` into one underscore, cut to 32 characters. A field already set is never overwritten; the channel is recomputed from the merged row on every write. The referrer is stored but does not decide the channel. |
 | Acquisition report | Sign-ups (users first seen in the range) by channel and by sign-up platform; link clicks in the range by channel; and per channel, of its sign-ups: activated (when configured), `trial_started` (a production `trial_started` ledger row for the user at any time up to now) and `paid` (a production `purchased`, `trial_converted` or `renewed` row). |
 | Web visitors, visits | From web sessions only (`platform = 'web'`) started in the range, placed on the day they started. Visitors: distinct `anonymous_id` over the range. Visits: sessions. A session ends after 30 minutes without an event; a cookieless visitor's events join their latest session while within that gap of it. A cookieless id changes every UTC day, so over a multi-day range a returning cookieless visitor counts once per day they came, and a visit that crosses UTC midnight splits into two sessions. With `persist: true` the id is stable across days. |
-| Pageviews | The sum of the sessions' view counts (`$pageview` and `$screen` events). The pages list counts `$pageview` events by `path`. Views per visit: pageviews over visits. |
+| Pageviews | The sum of the sessions' view counts (`$pageview` and `$screen` events). The pages list counts, by `path`, the `$pageview` events of those same sessions (started in the range, including their views after the range's last midnight), so it reconciles with the totals. Views per visit: pageviews over visits. |
 | Bounce rate | Sessions with at most one pageview and no custom events (events whose name does not start with `$`), over sessions. |
 | Visit duration | Mean of `last_seen_at - started_at` per session; a one-event visit is 0 seconds. |
 | Breakdowns | Pages, entry and exit pages, referrers (host only; none is `Direct`), UTM sources and campaigns (untagged sessions left out), devices, browsers, OS, countries. Top 20 of each by visitors, then pageviews. Device: a user agent that says mobile or tablet is trusted; otherwise the viewport width decides (under 768 mobile, under 1024 tablet, else desktop). |
-| Subscription state | A replay of one `providerSubscriptionId`'s rows up to an instant, by time and then type. `trial_started` opens a trial; a paid row with a `periodEnd` makes it paying for that period; `expired` and `refunded` end it, and `refund_reversed` restores what a refund ended; `cancel_scheduled`, `uncanceled`, `billing_issue`, `product_changed` and `reactivated` change nothing on their own. A paying subscription stays active until 2 days after its paid period ends (so a late renewal is not churn); a trial until its `periodEnd` plus 2 days, or 14 days after its start without one. |
-| MRR | For each subscription active and paid at the instant, its latest paid `amountCents` normalized to one month by its period length (`periodStart` to `periodEnd`, or `occurredAt` to `periodEnd` without a start): 6 to 8 days is weekly (×52/12), 27.5 to 31.5 monthly (×1), 85 to 95 quarterly (÷3), 175 to 190 half-yearly (÷6), 360 to 370 yearly (÷12), anything else prorated by days over 365.25/12. Rounded to whole cents per subscription. Reported at the end of the range's last day, at the start of its first day, and at each month end in the range. |
+| Subscription state | A replay of one `providerSubscriptionId`'s rows up to an instant, by time and then type. `trial_started` opens a trial; a paid row with a `periodEnd` makes it paying for that period; `expired` and `refunded` end it, and `refund_reversed` restores what a refund ended; `cancel_scheduled`, `uncanceled`, `billing_issue`, `product_changed` and `reactivated` change nothing on their own. A paying subscription stays active until 2 days after its paid period ends (so a late renewal is not churn); a trial until its `periodEnd` plus 2 days, or 14 days after its start without one. No snapshot is later than the report's now: "the end of the range's last day" means that instant or now, whichever is earlier. |
+| MRR | For each subscription active and paid at the instant, its latest paid `amountCents` normalized to one month by its period length (`periodStart` to `periodEnd`, or `occurredAt` to `periodEnd` without a start): 6 to 8 days is weekly (×52/12), 27.5 to 31.5 monthly (×1), 85 to 95 quarterly (÷3), 175 to 190 half-yearly (÷6), 360 to 370 yearly (÷12), anything else prorated by days over 365.25/12. Rounded to whole cents per subscription, in the currency of that paid row. Reported at the end of the range's last day, at the start of its first day, and at each month end in the range (each capped at now), with `mrr.by_currency` splitting the current figure. |
 | MRR movements | Per subscription between range start and end: new (not paying at the start, paying at the end), churned (the reverse), expansion and contraction (paying at both, MRR rose or fell). `net_new = new + expansion - contraction - churned`, which equals end MRR minus start MRR. |
 | Trial conversion | Trials started in the range, converted when the same subscription has a paid row before the trial's window closes (period end plus 2 days, or 14 days after the start). A trial not converted, not expired or refunded, and still inside its window is pending and left out of the denominator. A `trial_started` row with no subscription id counts as a trial that never converts. |
 | Churn | Customer churn: subscriptions paying at the range start and not at its end, over subscriptions paying at the start. Revenue churn: churned MRR over MRR at the range start. A subscription that ended and came back inside the range has not churned. |
-| Revenue totals | Over production rows that occurred in the range: gross is the sum of positive amounts, refunds the sum of negative amounts as a positive number, net is gross minus refunds; counts per event type; `cancel_scheduled` rows by `cancelReason` (`unknown` when null). Gross of store and processor fees. |
-| Overview | Active users on the last day, new users, web visitors and pageviews, MRR, active paid subscriptions, gross and net revenue, each next to the immediately preceding period of equal length; headline retention for the current period only. |
+| Revenue totals | Over production rows that occurred in the range: gross is the sum of positive amounts (leaving out `refund_reversed` rows); `refunds_reversed_cents` is what `refund_reversed` rows in the range restored, each cancelling the most recent not yet reversed refund of the same subscription (or, without one, the same `providerEventId`), by its own amount if it has one, else the refunded amount; refunds are the negative amounts as a positive number minus that, so they can be negative when a refund from before the range is reversed inside it; net is gross minus refunds. Counts per event type; `cancel_scheduled` rows by `cancelReason` (`unknown` when null). Gross of store and processor fees. |
+| Currency | Each money figure is in the currency of the rows behind it (upper-case ISO code; `XXX` for rows with none). `currency` is the one currency every money figure in the report involves, and `currencies` lists all of them (MRR at any snapshot, or revenue in the range), most current MRR first. When there is more than one, `currency` is null, the totals add unlike amounts without conversion, `mrr.by_currency` (`revenue.mrr_by_currency` in the overview) gives MRR per currency, and a note says so. With no money at all, `currency` is null and `currencies` empty. |
+| Overview | Active users on the last day, new users, web visitors and pageviews, MRR, active paid subscriptions, gross and net revenue, each next to the immediately preceding period of equal length; headline retention for the current period only. The revenue block carries `currency`, `currencies` and `mrr_by_currency` as above. |
 
 Each report carries `notes`, the caveats that apply to it, written for display.
+
+### Known limits
+
+These follow from the definitions above and are left as they are.
+
+- **Revenue churn leaves out contraction.** It is churned MRR over MRR at the range start; a customer who downgrades shows in `contraction_cents`, not in the churn rate.
+- **New MRR includes reactivations.** A subscription that was not paying at the range start and pays at its end is new, whether it is brand new or came back.
+- **Customer churn counts subscriptions, not people.** A user with two subscriptions who cancels one has churned one subscription.
+- **An upgrade issued as a new subscription id reads as churn plus new.** Expansion is only seen when the store keeps the same `providerSubscriptionId` across the change.
+- **A refund of an earlier period ends the current subscription.** The replay treats any `refunded` row as revoking access, as the stores do for a refund of the latest purchase.
+- **Period lengths snap at fixed cutoffs.** 6 to 8 days is weekly, 27.5 to 31.5 monthly, 85 to 95 quarterly, 175 to 190 half-yearly and 360 to 370 yearly; any other length (a two-week plan, say) is prorated by days, and a period just outside a cutoff is prorated rather than snapped.
+- **Stickiness understates a growing product.** It is average daily actives over the range divided by monthly actives on the last day, so while the user base grows the average lags the last day's MAU.
+- **Shared devices.** Events a device sent before anyone signed in are attributed to the first user who signed in on it, even if someone else used it before.
+- **Currencies are never converted.** Amounts in different currencies are added as recorded; read the per-currency MRR and the `currencies` list when there is more than one.
+- **Two copies of the time zone database.** Postgres cuts SQL day buckets with its own zone data and the JavaScript runtime cuts funnel, trial and MRR snapshot instants with ICU's. When their versions disagree about a zone's rules (for example Cuba from November 2026 between Node 26 and an older Postgres), those figures can disagree for that zone until both are updated.
 
 ## Privacy
 
@@ -780,6 +815,11 @@ tables takes `?table=`:
 | acquisition | `channels`, `platforms`, `link_clicks` |
 | web | `daily`, `totals`, `breakdowns`, or one breakdown (`pages`, `entry_pages`, `exit_pages`, `referrers`, `utm_sources`, `utm_campaigns`, `devices`, `browsers`, `os`, `countries`) |
 | revenue | `summary`, `mrr`, `event_counts`, `cancellations` |
+
+Money rows (revenue `summary` and `mrr`, and the overview's money figures) end
+with a `currency` column: the report's currency, `mixed` when its figures add
+several (the revenue `summary` then also has one `mrr_cents` row per currency),
+or empty when there is no money.
 
 Status codes: 400 `{ error }` for a bad range, option, format or table; 404 for
 anyone `isAdmin` refuses; 409 `{ error: "not_installed", installed, version,

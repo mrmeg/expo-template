@@ -78,10 +78,32 @@ export function isoInstant(column: string): string {
   return `to_char(${column} at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
 }
 
-/** Activity filter on `e.name`: the configured events, or everything but `$session_end`. */
-export function activeEventsFilter(params: QueryParams, activeEvents: readonly string[] | null, inactive: readonly string[]): string {
+/**
+ * `days` elapsed days as a fixed-length interval (`days * 86400` seconds).
+ * Adding `make_interval(days => n)` to a `timestamptz` instead counts calendar
+ * days in the connection's `TimeZone`, so the same data would give different
+ * answers on differently configured connections.
+ */
+export function elapsedDays(placeholder: string): string {
+  return `(${placeholder}::int * interval '86400 seconds')`;
+}
+
+/**
+ * Activity filter on `e`: the configured `activeEvents` (any platform), or by
+ * default every event except `$session_end` and except events whose platform
+ * is `server` (what the host records with `track()`, such as a renewal webhook,
+ * says nothing about the user opening the app).
+ */
+export function activeEventsFilter(
+  params: QueryParams,
+  activeEvents: readonly string[] | null,
+  inactive: { events: readonly string[]; platforms: readonly string[] },
+): string {
   if (activeEvents) return `e.name in (select jsonb_array_elements_text(${params.add(JSON.stringify(activeEvents))}::text::jsonb))`;
-  return `e.name not in (select jsonb_array_elements_text(${params.add(JSON.stringify(inactive))}::text::jsonb))`;
+  const names = params.add(JSON.stringify(inactive.events));
+  const platforms = params.add(JSON.stringify(inactive.platforms));
+  return `e.name not in (select jsonb_array_elements_text(${names}::text::jsonb))
+    and (e.platform is null or e.platform not in (select jsonb_array_elements_text(${platforms}::text::jsonb)))`;
 }
 
 /** Leaves out rows whose user (`expression`) is excluded. `not exists`, so a null user passes. */

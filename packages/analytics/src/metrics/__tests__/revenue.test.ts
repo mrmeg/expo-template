@@ -1,5 +1,9 @@
 import {
   computeChurn,
+  computeRefundReversals,
+  currencyBreakdown,
+  normalizeCurrency,
+  summarizeCurrencies,
   computeTrialConversion,
   indexLedger,
   monthlyAmount,
@@ -8,7 +12,7 @@ import {
   revenueSnapshot,
   summarizeRevenueTotals,
 } from "../revenue";
-import type { LedgerRow } from "../types";
+import type { LedgerRow, RefundRow } from "../types";
 
 function row(
   sub: string | null,
@@ -24,6 +28,7 @@ function row(
     period_start: null,
     period_end: null,
     amount_cents: null,
+    currency: "usd",
     ...extra,
   };
 }
@@ -231,13 +236,98 @@ describe("summarizeRevenueTotals", () => {
       { event_type: "refunded", currency: "usd", events: 1, gross_cents: 0, refunds_cents: 999 },
       { event_type: "cancel_scheduled", currency: null, events: 4, gross_cents: 0, refunds_cents: 0 },
     ]);
-    expect(summary.totals).toEqual({ gross_cents: 4998, refunds_cents: 999, net_cents: 3999 });
+    expect(summary.totals).toEqual({ gross_cents: 4998, refunds_cents: 999, refunds_reversed_cents: 0, net_cents: 3999 });
     expect(summary.event_counts).toMatchObject({ purchased: 3, renewed: 2, refunded: 1, cancel_scheduled: 4, expired: 0, reactivated: 0 });
     expect(Object.keys(summary.event_counts)).toHaveLength(12);
-    expect(summary.mixed_currencies).toBe(false);
-    expect(summarizeRevenueTotals([
-      { event_type: "purchased", currency: "usd", events: 1, gross_cents: 1, refunds_cents: 0 },
-      { event_type: "purchased", currency: "eur", events: 1, gross_cents: 1, refunds_cents: 0 },
-    ]).mixed_currencies).toBe(true);
+    // Only currencies that carry money are involved; the null-currency cancellation is not.
+    expect([...summary.net_by_currency]).toEqual([["USD", 3999]]);
+  });
+
+  it("reports refunds net of reversals and never counts a reversal's own amount as gross", () => {
+    const summary = summarizeRevenueTotals(
+      [
+        { event_type: "purchased", currency: "usd", events: 1, gross_cents: 1000, refunds_cents: 0 },
+        { event_type: "refunded", currency: "usd", events: 1, gross_cents: 0, refunds_cents: 1000 },
+        { event_type: "refund_reversed", currency: "usd", events: 1, gross_cents: 1000, refunds_cents: 0 },
+      ],
+      new Map([["USD", 1000]]),
+    );
+    expect(summary.totals).toEqual({ gross_cents: 1000, refunds_cents: 0, refunds_reversed_cents: 1000, net_cents: 1000 });
+    expect(summary.event_counts.refund_reversed).toBe(1);
+  });
+});
+
+describe("computeRefundReversals", () => {
+  const refund = (lineage: string, at: string, amount: number | null, extra: Partial<RefundRow> = {}): RefundRow => ({
+    lineage, event_type: "refunded", occurred_at: at, amount_cents: amount, currency: "usd", in_range: true, ...extra,
+  });
+  const reversal = (lineage: string, at: string, amount: number | null = null, extra: Partial<RefundRow> = {}): RefundRow => ({
+    lineage, event_type: "refund_reversed", occurred_at: at, amount_cents: amount, currency: "usd", in_range: true, ...extra,
+  });
+
+  it("restores the refunded amount when the reversal carries none", () => {
+    expect([...computeRefundReversals([refund("S", "2026-11-02T00:00:00Z", -1000), reversal("S", "2026-11-05T00:00:00Z")])]).toEqual([["USD", 1000]]);
+  });
+
+  it("uses the reversal's own amount when it has one", () => {
+    expect([...computeRefundReversals([refund("S", "2026-11-02T00:00:00Z", -1000), reversal("S", "2026-11-05T00:00:00Z", 400)])]).toEqual([["USD", 400]]);
+  });
+
+  it("cancels the most recent unreversed refund, one reversal per refund", () => {
+    const rows = [
+      refund("S", "2026-11-01T00:00:00Z", -300),
+      refund("S", "2026-11-02T00:00:00Z", -500),
+      reversal("S", "2026-11-03T00:00:00Z"),
+      reversal("S", "2026-11-04T00:00:00Z"),
+      reversal("S", "2026-11-05T00:00:00Z"), // nothing left to reverse
+      refund("OTHER", "2026-11-01T00:00:00Z", -9999),
+    ];
+    expect([...computeRefundReversals(rows)]).toEqual([["USD", 800]]);
+  });
+
+  it("matches a refund before the range and counts only reversals inside it", () => {
+    const rows = [
+      refund("S", "2026-10-02T00:00:00Z", -700, { in_range: false, currency: "eur" }),
+      reversal("S", "2026-11-05T00:00:00Z", null, { currency: null }),
+      refund("T", "2026-10-02T00:00:00Z", -100, { in_range: false }),
+      reversal("T", "2026-10-05T00:00:00Z", null, { in_range: false }),
+    ];
+    expect([...computeRefundReversals(rows)]).toEqual([["EUR", 700]]);
+  });
+
+  it("orders a refund before a reversal at the same instant", () => {
+    expect([...computeRefundReversals([reversal("S", "2026-11-02T00:00:00Z"), refund("S", "2026-11-02T00:00:00Z", -250)])]).toEqual([["USD", 250]]);
+  });
+});
+
+describe("currencies", () => {
+  it("normalizes codes and marks a missing one", () => {
+    expect(normalizeCurrency(" eur ")).toBe("EUR");
+    expect(normalizeCurrency(null)).toBe("XXX");
+    expect(normalizeCurrency("")).toBe("XXX");
+  });
+
+  it("carries each subscription's currency into per-currency MRR", () => {
+    const ledger = indexLedger([
+      paid("U", "purchased", "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 12000),
+      { ...paid("E", "purchased", "2026-01-01T00:00:00Z", "2027-01-01T00:00:00Z", 24000), currency: "eur" },
+      { ...paid("N", "purchased", "2026-01-01T00:00:00Z", "2026-02-01T00:00:00Z", 500), currency: null },
+    ]);
+    const snapshot = revenueSnapshot(ledger, at("2026-01-15T00:00:00Z"));
+    expect(snapshot.mrr_cents).toBe(1000 + 2000 + 500);
+    expect(currencyBreakdown(snapshot.mrr_by_currency)).toEqual([
+      { currency: "EUR", current_cents: 2000 },
+      { currency: "USD", current_cents: 1000 },
+      { currency: "XXX", current_cents: 500 },
+    ]);
+  });
+
+  it("names the single currency, or null with every currency most MRR first", () => {
+    expect(summarizeCurrencies({ current: new Map([["USD", 100]]), start: new Map(), others: ["USD"] })).toEqual({ currency: "USD", currencies: ["USD"] });
+    expect(summarizeCurrencies({ current: new Map([["USD", 100], ["EUR", 300]]), start: new Map([["GBP", 50]]), others: ["JPY"] })).toEqual({
+      currency: null,
+      currencies: ["EUR", "USD", "GBP", "JPY"],
+    });
+    expect(summarizeCurrencies({ current: new Map(), start: new Map(), others: [] })).toEqual({ currency: null, currencies: [] });
   });
 });

@@ -7,14 +7,32 @@
  * `periodEnd` from the webhook event or the subscription never reaches MRR.
  * Idempotent on `(app_id, provider, provider_event_id, event_type)`, so a
  * redelivered webhook writes nothing.
+ *
+ * The vocabulary columns are normalized on write (trimmed, lowercased), and
+ * `eventType` and `environment` must be known values: every metric matches
+ * them exactly, so a row spelled `"Purchased"` or `"PRODUCTION"` would count
+ * in some figures and vanish from others. A bad row throws before anything is
+ * written, so a mapping mistake is loud instead of silently wrong.
  */
+import { REVENUE_EVENT_TYPES, type RevenueEventType } from "../metrics/types";
 import type { StoreContext } from "./config";
 import { cleanText, isPlainObject, jsonParam, toDate } from "./util";
+
+/** The twelve ledger event types the metrics understand (shared with `./metrics`). */
+export { REVENUE_EVENT_TYPES, type RevenueEventType };
+
+export const REVENUE_ENVIRONMENTS = ["production", "sandbox"] as const;
+export type RevenueEnvironment = (typeof REVENUE_ENVIRONMENTS)[number];
+
+const EVENT_TYPES: ReadonlySet<string> = new Set(REVENUE_EVENT_TYPES);
+const ENVIRONMENTS: ReadonlySet<string> = new Set(REVENUE_ENVIRONMENTS);
+/** The column is `integer`; a value outside it would fail the whole insert with a driver error. */
+const INT32_MAX = 2_147_483_647;
 
 export interface RevenueEventInput {
   userId: string | null;
   provider: string;
-  /** Normalized type: `purchased`, `renewed`, `refunded`, `trial_started`, ... */
+  /** One of `REVENUE_EVENT_TYPES` (case-insensitive); anything else throws. */
   eventType: string;
   providerEventId: string;
   providerEventType?: string | null;
@@ -29,7 +47,7 @@ export interface RevenueEventInput {
   currency?: string | null;
   renewalNumber?: number | null;
   cancelReason?: string | null;
-  /** Default `production`. */
+  /** `production` or `sandbox` (case-insensitive); default `production`; anything else throws. */
   environment?: string | null;
   occurredAt: number | Date;
   payload?: Record<string, unknown> | null;
@@ -47,39 +65,59 @@ function optionalText(value: unknown): string | null {
   return cleanText(value, TEXT_MAX_LENGTH);
 }
 
-function timestamp(value: number | Date | null | undefined, field: string, index: number): string | null {
+/** `row` names the row in errors, e.g. `row 3 (providerEventId "evt_1")`. */
+function timestamp(value: number | Date | null | undefined, field: string, row: string): string | null {
   if (value === null || value === undefined) return null;
   const date = toDate(value);
-  if (Number.isNaN(date.getTime())) throw new Error(`expo-analytics: revenue row ${index}: ${field} is not a valid time`);
+  if (Number.isNaN(date.getTime())) throw new Error(`expo-analytics: revenue ${row}: ${field} is not a valid time`);
   return date.toISOString();
 }
 
-function integer(value: number | null | undefined, field: string, index: number): number | null {
+function integer(value: number | null | undefined, field: string, row: string): number | null {
   if (value === null || value === undefined) return null;
-  if (!Number.isInteger(value)) throw new Error(`expo-analytics: revenue row ${index}: ${field} must be an integer`);
+  if (typeof value !== "number" || !Number.isInteger(value) || Math.abs(value) > INT32_MAX) {
+    throw new Error(`expo-analytics: revenue ${row}: ${field} must be a finite integer (got ${String(value)})`);
+  }
   return value;
+}
+
+function lower(value: string | null): string | null {
+  return value === null ? null : value.toLowerCase();
 }
 
 /** Validates every row before writing any, so a bad row fails the call instead of half of it. */
 function toRecord(row: RevenueEventInput, index: number) {
+  const providerEventId = required(row.providerEventId, "providerEventId", index);
+  const where = `row ${index} (providerEventId "${providerEventId}")`;
+  const describe = (field: string, value: unknown) => `expo-analytics: revenue ${where}: ${field} ${JSON.stringify(value)}`;
+
+  const eventType = lower(optionalText(row.eventType));
+  if (eventType === null || !EVENT_TYPES.has(eventType)) {
+    throw new Error(`${describe("eventType", row.eventType ?? null)} is not one of ${REVENUE_EVENT_TYPES.join(", ")}`);
+  }
+  const environment = lower(optionalText(row.environment)) ?? "production";
+  if (!ENVIRONMENTS.has(environment)) {
+    throw new Error(`${describe("environment", row.environment)} is not one of ${REVENUE_ENVIRONMENTS.join(", ")}`);
+  }
+
   return {
     user_id: optionalText(row.userId),
-    provider: required(row.provider, "provider", index),
-    event_type: required(row.eventType, "eventType", index),
-    provider_event_id: required(row.providerEventId, "providerEventId", index),
+    provider: required(row.provider, "provider", index).toLowerCase(),
+    event_type: eventType,
+    provider_event_id: providerEventId,
     provider_event_type: optionalText(row.providerEventType),
     provider_subscription_id: optionalText(row.providerSubscriptionId),
     product_id: optionalText(row.productId),
-    store: optionalText(row.store),
-    period_type: optionalText(row.periodType),
-    period_start: timestamp(row.periodStart, "periodStart", index),
-    period_end: timestamp(row.periodEnd, "periodEnd", index),
-    amount_cents: integer(row.amountCents, "amountCents", index),
-    currency: optionalText(row.currency)?.toLowerCase() ?? null,
-    renewal_number: integer(row.renewalNumber, "renewalNumber", index),
+    store: lower(optionalText(row.store)),
+    period_type: lower(optionalText(row.periodType)),
+    period_start: timestamp(row.periodStart, "periodStart", where),
+    period_end: timestamp(row.periodEnd, "periodEnd", where),
+    amount_cents: integer(row.amountCents, "amountCents", where),
+    currency: lower(optionalText(row.currency)),
+    renewal_number: integer(row.renewalNumber, "renewalNumber", where),
     cancel_reason: optionalText(row.cancelReason),
-    environment: optionalText(row.environment) ?? "production",
-    occurred_at: timestamp(row.occurredAt, "occurredAt", index) ?? required(null, "occurredAt", index),
+    environment,
+    occurred_at: timestamp(row.occurredAt, "occurredAt", where) ?? required(null, "occurredAt", index),
     payload: isPlainObject(row.payload) ? row.payload : null,
   };
 }

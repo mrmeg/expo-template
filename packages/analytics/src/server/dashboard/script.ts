@@ -114,20 +114,76 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
 
   var countFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
   var compactFormat = new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 });
-  var moneyFormat = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
-  var moneyCompact = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
+  var plainMoney = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  var moneyFormats = {};
 
   function fmtCount(value) {
     return typeof value === "number" && isFinite(value) ? countFormat.format(value) : "No data";
   }
 
-  function fmtCents(cents) {
-    return typeof cents === "number" && isFinite(cents) ? moneyFormat.format(cents / 100) : "No data";
+  /** Intl's format for an ISO currency code in a style (full, whole, compact); null when the runtime rejects the code. */
+  function currencyFormat(currency, style) {
+    var key = currency + ":" + style;
+    if (!Object.prototype.hasOwnProperty.call(moneyFormats, key)) {
+      var options = { style: "currency", currency: currency };
+      if (style === "compact") {
+        options.notation = "compact";
+        options.maximumFractionDigits = 1;
+      } else if (style === "whole") {
+        options.minimumFractionDigits = 0;
+        options.maximumFractionDigits = 0;
+      }
+      try {
+        moneyFormats[key] = new Intl.NumberFormat("en-US", options);
+      } catch (error) {
+        moneyFormats[key] = null;
+      }
+    }
+    return moneyFormats[key];
   }
 
-  function fmtSignedCents(cents) {
-    if (cents === 0) return fmtCents(0);
-    return (cents > 0 ? "+" : "\u2212") + fmtCents(Math.abs(cents));
+  /** Cents in one currency: Intl's currency format, else a plain number followed by the ISO code. */
+  function fmtMoney(cents, currency, style) {
+    if (typeof cents !== "number" || !isFinite(cents)) return "No data";
+    style = style || "full";
+    var format = currency ? currencyFormat(currency, style) : null;
+    if (format) return format.format(cents / 100);
+    var number = style === "compact" ? compactFormat.format(cents / 100)
+      : style === "whole" ? countFormat.format(Math.round(cents / 100))
+        : plainMoney.format(cents / 100);
+    return currency ? number + " " + currency : number;
+  }
+
+  /**
+   * Money formatting for one report's figures, from its currency info
+   * ({ currency, currencies }). One currency: every figure is formatted in it.
+   * Several: amounts were added without conversion, so combined figures read
+   * as plain numbers marked "(mixed)" and MRR is shown per currency instead.
+   */
+  function moneyFor(info) {
+    var currency = info && info.currency ? info.currency : null;
+    var mixed = !currency && !!info && Array.isArray(info.currencies) && info.currencies.length > 1;
+    function cents(value) {
+      var text = fmtMoney(value, currency);
+      return mixed && text !== "No data" ? text + " (mixed)" : text;
+    }
+    return {
+      mixed: mixed,
+      cents: cents,
+      signed: function (value) {
+        if (value === 0) return cents(0);
+        return (value > 0 ? "+" : "\u2212") + cents(Math.abs(value));
+      },
+      axis: function (max) {
+        return function (value) {
+          return fmtMoney(value, currency, max >= 1000000 ? "compact" : max >= 10000 ? "whole" : "full");
+        };
+      },
+      list: function (parts) {
+        if (!parts || !parts.length) return "No data";
+        return parts.map(function (part) { return fmtMoney(part.current_cents, part.currency); }).join(" \u00B7 ");
+      }
+    };
   }
 
   function fmtPercent(rate, digits) {
@@ -163,13 +219,6 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
   function axisCount(max) {
     return function (value) {
       return max >= 10000 ? compactFormat.format(value) : countFormat.format(value);
-    };
-  }
-
-  function axisCents(max) {
-    return function (value) {
-      if (max >= 1000000) return moneyCompact.format(value / 100);
-      return max >= 10000 ? "$" + countFormat.format(Math.round(value / 100)) : fmtCents(value);
     };
   }
 
@@ -907,11 +956,14 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
     ]));
     body.appendChild(groupTitle("Revenue"));
     var revenue = report.revenue;
+    var money = moneyFor(revenue);
     body.appendChild(tiles([
-      tile("MRR", fmtCents(revenue.mrr_cents.current), { delta: delta(revenue.mrr_cents.current, revenue.mrr_cents.previous), sub: "At the end of the period" }),
+      money.mixed
+        ? tile("MRR", money.list(revenue.mrr_by_currency), { sub: "Per currency at the end of the period, never converted" })
+        : tile("MRR", money.cents(revenue.mrr_cents.current), { delta: delta(revenue.mrr_cents.current, revenue.mrr_cents.previous), sub: "At the end of the period" }),
       tile("Active subscriptions", fmtCount(revenue.active_subscriptions.current), { delta: delta(revenue.active_subscriptions.current, revenue.active_subscriptions.previous) }),
-      tile("Gross revenue", fmtCents(revenue.gross_cents.current), { delta: delta(revenue.gross_cents.current, revenue.gross_cents.previous) }),
-      tile("Net revenue", fmtCents(revenue.net_cents.current), { delta: delta(revenue.net_cents.current, revenue.net_cents.previous), sub: "After refunds" })
+      tile("Gross revenue", money.cents(revenue.gross_cents.current), { delta: money.mixed ? null : delta(revenue.gross_cents.current, revenue.gross_cents.previous) }),
+      tile("Net revenue", money.cents(revenue.net_cents.current), { delta: money.mixed ? null : delta(revenue.net_cents.current, revenue.net_cents.previous), sub: "After refunds" })
     ]));
     if (report.retention.length) {
       body.appendChild(groupTitle("Retention of users first seen in this period"));
@@ -1254,10 +1306,13 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
     }
     var trials = report.trial_conversion;
     var churn = report.churn;
+    var money = moneyFor(report);
     body.appendChild(groupTitle("Recurring revenue"));
     body.appendChild(tiles([
-      tile("MRR", fmtCents(mrr.current_cents), { delta: delta(mrr.current_cents, mrr.at_range_start_cents), sub: "At the end of the period, against its start" }),
-      tile("Net new MRR", fmtSignedCents(mrr.movements.net_new_cents), { sub: "New + expansion \u2212 contraction \u2212 churned" }),
+      money.mixed
+        ? tile("MRR", money.list(mrr.by_currency), { sub: "Per currency at the end of the period, never converted" })
+        : tile("MRR", money.cents(mrr.current_cents), { delta: delta(mrr.current_cents, mrr.at_range_start_cents), sub: "At the end of the period, against its start" }),
+      tile("Net new MRR", money.signed(mrr.movements.net_new_cents), { sub: "New + expansion \u2212 contraction \u2212 churned" }),
       tile("Active subscriptions", fmtCount(report.subscriptions.active_paid), { delta: delta(report.subscriptions.active_paid, report.subscriptions.paid_at_range_start), sub: "Paying at the end of the period" }),
       tile("Active trials", fmtCount(report.subscriptions.active_trials), { sub: "At the end of the period" })
     ]));
@@ -1266,22 +1321,22 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
       rateTile("Trial conversion", trials.cell, fmtCount(trials.converted) + " of " + fmtCount(trials.started) + " trials started" +
         (trials.pending ? " \u00B7 " + fmtCount(trials.pending) + " still running" : "")),
       rateTile("Customer churn", churn.customer, fmtCount(churn.customer.numerator) + " of " + fmtCount(churn.customer.denominator) + " paying at the start stopped"),
-      rateTile("Revenue churn", churn.revenue, fmtCents(churn.revenue.numerator) + " of " + fmtCents(churn.revenue.denominator) + " MRR lost")
+      rateTile("Revenue churn", churn.revenue, money.cents(churn.revenue.numerator) + " of " + money.cents(churn.revenue.denominator) + " MRR lost")
     ]));
     body.appendChild(groupTitle("Revenue in the period"));
     body.appendChild(tiles([
-      tile("Gross revenue", fmtCents(report.revenue.gross_cents)),
-      tile("Refunds", fmtCents(report.revenue.refunds_cents)),
-      tile("Net revenue", fmtCents(report.revenue.net_cents), { sub: "Gross minus refunds" })
+      tile("Gross revenue", money.cents(report.revenue.gross_cents)),
+      tile("Refunds", money.cents(report.revenue.refunds_cents)),
+      tile("Net revenue", money.cents(report.revenue.net_cents), { sub: "Gross minus refunds" })
     ]));
 
     var movements = card("MRR movements", "From the start of the period to its end.");
     movements.appendChild(divergingList([
-      { label: "New", value: mrr.movements.new_cents, figure: fmtSignedCents(mrr.movements.new_cents) },
-      { label: "Expansion", value: mrr.movements.expansion_cents, figure: fmtSignedCents(mrr.movements.expansion_cents) },
-      { label: "Contraction", value: -mrr.movements.contraction_cents, figure: fmtSignedCents(-mrr.movements.contraction_cents) },
-      { label: "Churned", value: -mrr.movements.churned_cents, figure: fmtSignedCents(-mrr.movements.churned_cents) },
-      { label: "Net new", value: mrr.movements.net_new_cents, figure: fmtSignedCents(mrr.movements.net_new_cents) }
+      { label: "New", value: mrr.movements.new_cents, figure: money.signed(mrr.movements.new_cents) },
+      { label: "Expansion", value: mrr.movements.expansion_cents, figure: money.signed(mrr.movements.expansion_cents) },
+      { label: "Contraction", value: -mrr.movements.contraction_cents, figure: money.signed(-mrr.movements.contraction_cents) },
+      { label: "Churned", value: -mrr.movements.churned_cents, figure: money.signed(-mrr.movements.churned_cents) },
+      { label: "Net new", value: mrr.movements.net_new_cents, figure: money.signed(mrr.movements.net_new_cents) }
     ]));
     var grid = el("div", "cards");
     grid.appendChild(movements);
@@ -1291,14 +1346,14 @@ export const DASHBOARD_SCRIPT = String.raw`(function () {
       monthEnds.appendChild(lineChart({
         label: "MRR at each month end",
         dates: mrr.month_ends.map(function (p) { return p.date; }),
-        format: fmtCents,
-        axis: axisCents,
+        format: money.cents,
+        axis: money.axis,
         markers: true,
         series: [{ name: "MRR", values: mrr.month_ends.map(function (p) { return p.mrr_cents; }) }]
       }));
     } else if (mrr.month_ends.length === 1) {
       monthEnds.appendChild(simpleTable([{ label: "Month end", rowHeader: true }, { label: "MRR", num: true }],
-        [[fmtDayYear(mrr.month_ends[0].date), fmtCents(mrr.month_ends[0].mrr_cents)]], null, "MRR at month ends"));
+        [[fmtDayYear(mrr.month_ends[0].date), money.cents(mrr.month_ends[0].mrr_cents)]], null, "MRR at month ends"));
     } else {
       monthEnds.appendChild(el("p", "empty-line", "No month ends in this period. Pick a longer range to see MRR month by month."));
     }

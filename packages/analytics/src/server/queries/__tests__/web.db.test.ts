@@ -27,17 +27,18 @@ describeDb("web report", (ctx) => {
       { id: "s6", anon: "v5", started: "2026-11-04T12:00:00Z", pageviews: 9 },
       { id: "s7", anon: "v6", started: "2026-10-25T12:00:00Z", pageviews: 2 },
     ]);
-    const pageview = (anon: string, path: string, at: string, extra = {}) => ({ name: "$pageview", anon, path, at, platform: "web", ...extra });
+    const pageview = (anon: string, session: string, path: string, at: string, extra = {}) =>
+      ({ name: "$pageview", anon, session, path, at, platform: "web", ...extra });
     await insertEvents(ctx.sql, names, [
-      pageview("v1", "/", "2026-11-02T10:00:00Z"),
-      pageview("v1", "/", "2026-11-02T10:01:00Z"),
-      pageview("v1", "/pricing", "2026-11-02T10:05:00Z"),
-      pageview("v2", "/blog", "2026-11-03T12:00:00Z"),
-      pageview("v4", "/secret", "2026-11-04T12:00:00Z", { user: "staff" }),
+      pageview("v1", "s1", "/", "2026-11-02T10:00:00Z"),
+      pageview("v1", "s1", "/", "2026-11-02T10:01:00Z"),
+      pageview("v1", "s1", "/pricing", "2026-11-02T10:05:00Z"),
+      pageview("v2", "s3", "/blog", "2026-11-03T12:00:00Z"),
+      pageview("v4", "s5", "/secret", "2026-11-04T12:00:00Z", { user: "staff" }),
       // v5 signed in as staff once, so its anonymous session and pageviews are staff's too.
-      pageview("v5", "/secret", "2026-11-04T11:00:00Z", { user: "staff" }),
-      pageview("v5", "/secret", "2026-11-04T12:00:00Z"),
-      { name: "$pageview", anon: "v3", path: "/native", at: "2026-11-03T12:00:00Z", platform: "ios" },
+      pageview("v5", "s0", "/secret", "2026-11-04T11:00:00Z", { user: "staff" }),
+      pageview("v5", "s6", "/secret", "2026-11-04T12:00:00Z"),
+      { name: "$pageview", anon: "v3", session: "s4", path: "/native", at: "2026-11-03T12:00:00Z", platform: "ios" },
     ]);
   });
 
@@ -79,6 +80,32 @@ describeDb("web report", (ctx) => {
     expect(breakdowns.browsers.map((r) => r.key)).toEqual(["Chrome", "Safari"]);
     expect(breakdowns.os.map((r) => r.key)).toEqual(["macOS", "iOS"]);
     expect(breakdowns.countries.map((r) => r.key)).toEqual(["US", "CA"]);
+  });
+
+  it("counts pages over the same sessions as the totals, so the two reconcile", async () => {
+    const december = { from: "2026-12-01", to: "2026-12-02" };
+    await insertSessions(ctx.sql, names, [
+      // Started the night before the range: in neither the totals nor the pages.
+      { id: "x1", anon: "w1", started: "2026-11-30T23:50:00Z", lastSeen: "2026-12-01T00:05:00Z", pageviews: 2, customEvents: 1 },
+      // Started on the last evening and ran past midnight: both views count.
+      { id: "x2", anon: "w2", started: "2026-12-02T23:50:00Z", lastSeen: "2026-12-03T00:10:00Z", pageviews: 2 },
+      { id: "x3", anon: "w3", started: "2026-12-01T10:00:00Z", pageviews: 1 },
+    ]);
+    await insertEvents(ctx.sql, names, [
+      { name: "signup", anon: "w1", session: "x1", at: "2026-11-30T23:50:00Z", platform: "web" },
+      { name: "$pageview", anon: "w1", session: "x1", path: "/late", at: "2026-12-01T00:01:00Z", platform: "web" },
+      { name: "$pageview", anon: "w1", session: "x1", path: "/late", at: "2026-12-01T00:05:00Z", platform: "web" },
+      { name: "$pageview", anon: "w2", session: "x2", path: "/", at: "2026-12-02T23:50:00Z", platform: "web" },
+      { name: "$pageview", anon: "w2", session: "x2", path: "/after", at: "2026-12-03T00:10:00Z", platform: "web" },
+      { name: "$pageview", anon: "w3", session: "x3", path: "/", at: "2026-12-01T10:00:00Z", platform: "web" },
+    ]);
+    const report = await getWebReport(deps(ctx.sql, names), december);
+    expect(report.totals).toMatchObject({ visits: 2, pageviews: 3 });
+    expect(report.breakdowns.pages).toEqual([
+      { key: "/", visitors: 2, pageviews: 2 },
+      { key: "/after", visitors: 1, pageviews: 1 },
+    ]);
+    expect(report.breakdowns.pages.reduce((sum, row) => sum + row.pageviews, 0)).toBe(report.totals.pageviews);
   });
 
   it("is empty for a range without sessions", async () => {

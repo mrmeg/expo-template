@@ -3,10 +3,10 @@
  * excluded users' rows (`not exists`, so rows without a user stay).
  */
 
-import { TRIAL_FALLBACK_WINDOW_DAYS, type CountByKey, type LedgerRow, type RevenueTotalsRow } from "../../metrics";
+import { TRIAL_FALLBACK_WINDOW_DAYS, type CountByKey, type LedgerRow, type RefundRow, type RevenueTotalsRow } from "../../metrics";
 import type { Names } from "../schema";
 import type { SqlClient } from "../sql";
-import { QueryParams, RANGE_START, countedRevenue, inRange, isoInstant, toNumber, type QueryScope } from "./context";
+import { QueryParams, elapsedDays, RANGE_END, RANGE_START, countedRevenue, inRange, isoInstant, toNumber, type QueryScope } from "./context";
 
 /**
  * Every row (no upper time bound, so conversions after the range end are
@@ -15,6 +15,8 @@ import { QueryParams, RANGE_START, countedRevenue, inRange, isoInstant, toNumber
  * within `TRIAL_FALLBACK_WINDOW_DAYS` before the range start or after it. That
  * bound covers a paid period still in its grace and a trial with no period
  * end. Also the range's `trial_started` rows that have no subscription id.
+ * The lookback is elapsed days (fixed seconds), independent of the
+ * connection's `TimeZone`.
  */
 export async function fetchLedgerForReplay(sql: SqlClient, names: Names, scope: QueryScope): Promise<LedgerRow[]> {
   const params = new QueryParams(scope);
@@ -24,13 +26,14 @@ export async function fetchLedgerForReplay(sql: SqlClient, names: Names, scope: 
       select distinct r.provider_subscription_id
       from ${names.t.revenueEvents} r
       where ${countedRevenue(names)} and r.provider_subscription_id is not null
-        and coalesce(r.period_end, r.occurred_at) > ${RANGE_START} - make_interval(days => ${lookback}::int)
+        and coalesce(r.period_end, r.occurred_at) > ${RANGE_START} - ${elapsedDays(lookback)}
     )
     select r.provider_subscription_id, r.user_id, r.event_type,
       ${isoInstant("r.occurred_at")} as occurred_at,
       ${isoInstant("r.period_start")} as period_start,
       ${isoInstant("r.period_end")} as period_end,
-      r.amount_cents
+      r.amount_cents,
+      r.currency
     from ${names.t.revenueEvents} r
     where ${countedRevenue(names)}
       and (
@@ -65,6 +68,33 @@ export async function fetchCancellationReasons(sql: SqlClient, names: Names, sco
     from ${names.t.revenueEvents} r
     where ${countedRevenue(names)} and r.event_type = 'cancel_scheduled' and ${inRange("r.occurred_at")}
     group by 1`,
+    params.values,
+  );
+}
+
+/**
+ * The `refunded` and `refund_reversed` rows, up to the range end, of every
+ * lineage (subscription id, else `provider_event_id`) with a `refund_reversed`
+ * row inside the range: what `computeRefundReversals` needs to find which
+ * refund each reversal cancels.
+ */
+export async function fetchRefundRows(sql: SqlClient, names: Names, scope: QueryScope): Promise<RefundRow[]> {
+  const params = new QueryParams(scope);
+  return sql.query<RefundRow>(
+    `with lineages as (
+      select distinct coalesce(r.provider_subscription_id, r.provider_event_id) as lineage
+      from ${names.t.revenueEvents} r
+      where ${countedRevenue(names)} and r.event_type = 'refund_reversed' and ${inRange("r.occurred_at")}
+    )
+    select coalesce(r.provider_subscription_id, r.provider_event_id) as lineage, r.event_type,
+      ${isoInstant("r.occurred_at")} as occurred_at, r.amount_cents, r.currency,
+      (${inRange("r.occurred_at")}) as in_range
+    from ${names.t.revenueEvents} r
+    where ${countedRevenue(names)}
+      and r.event_type in ('refunded', 'refund_reversed')
+      and r.occurred_at < ${RANGE_END}
+      and coalesce(r.provider_subscription_id, r.provider_event_id) in (select lineage from lineages)
+    order by 1, r.occurred_at`,
     params.values,
   );
 }

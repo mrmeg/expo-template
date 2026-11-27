@@ -47,8 +47,8 @@ export {
 } from "./links";
 export type { LinkClickInput, LinkConfig, LinkDestination, LinkPlatform, LinkRequest } from "./links";
 
-export { recordRevenueEvents } from "./revenue";
-export type { RevenueEventInput } from "./revenue";
+export { REVENUE_ENVIRONMENTS, REVENUE_EVENT_TYPES, recordRevenueEvents } from "./revenue";
+export type { RevenueEnvironment, RevenueEventInput, RevenueEventType } from "./revenue";
 
 export { fromPg, fromPostgresJs } from "./sql";
 export type { PgClientLike, PgPoolLike, PostgresJsLike, SqlClient, SqlParam } from "./sql";

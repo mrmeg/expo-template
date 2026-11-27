@@ -245,6 +245,31 @@ describe("delivery failures", () => {
     expect(fake.names(1)).toEqual(["one"]);
   });
 
+  it("stamps sent_at with the time of each attempt, so a retry carries a fresh one", async () => {
+    const { tracker, fake } = setup();
+    fake.respond(503);
+    tracker.track("one");
+    await jest.advanceTimersByTimeAsync(10_000);
+    await tracker.flush();
+    fake.respond(200);
+    await jest.advanceTimersByTimeAsync(1_000);
+    expect(fake.sent).toHaveLength(2);
+    const [first, retry] = fake.sent.map((entry) => entry.batch);
+    expect(first!.sent_at).toBe(new Date(START + 10_000).toISOString());
+    expect(retry!.sent_at).toBe(new Date(START + 11_000).toISOString());
+    // The event keeps the time it happened; only the send time moves.
+    expect(retry!.events[0]!.ts).toBe(new Date(START).toISOString());
+  });
+
+  it("stamps sent_at on keepalive flushes too", async () => {
+    const { tracker, fake } = setup();
+    tracker.track("one");
+    await jest.advanceTimersByTimeAsync(2_000);
+    await tracker.flush({ keepalive: true });
+    expect(fake.sent[0]!.request.keepalive).toBe(true);
+    expect(fake.sent[0]!.batch.sent_at).toBe(new Date(START + 2_000).toISOString());
+  });
+
   it("resumes threshold flushes as soon as an explicit flush succeeds during backoff", async () => {
     const { tracker, fake } = setup({ flushAt: 2, flushIntervalMs: 60 * 60 * 1000 });
     fake.respond(503);

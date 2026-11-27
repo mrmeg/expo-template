@@ -39,6 +39,21 @@ describe("computeFunnel", () => {
     expect(result.steps[2]).toMatchObject({ from_first: { rate: 1 / 3 }, from_previous: { rate: 0.5 }, median_seconds_from_previous: 120 });
   });
 
+  it("counts a step at the same instant as the previous one, whatever the row order", () => {
+    const t = "2026-11-02T00:00:00Z";
+    const twoSteps = { key: "ab", name: "AB", steps: ["a", "b"] };
+    // One actor's rows arrive step-first, the other's in step order; both complete.
+    const rows = [ev("x", "b", t), ev("x", "a", t), ev("y", "a", t), ev("y", "b", t)];
+    const result = computeFunnel(twoSteps, rows, bounds);
+    expect(result.steps.map((s) => s.actors)).toEqual([2, 2]);
+    expect(result.steps[1].median_seconds_from_previous).toBe(0);
+    expect(computeFunnel(twoSteps, [...rows].reverse(), bounds).steps.map((s) => s.actors)).toEqual([2, 2]);
+    // Three steps in one instant, any order.
+    expect(computeFunnel(definition, [ev("z", "share", t), ev("z", "create", t), ev("z", "signup", t)], bounds).steps.map((s) => s.actors)).toEqual([1, 1, 1]);
+    // An earlier step-2 event never counts before step 1.
+    expect(computeFunnel(twoSteps, [ev("w", "b", "2026-11-01T23:59:59Z"), ev("w", "a", t)], bounds).steps.map((s) => s.actors)).toEqual([1, 0]);
+  });
+
   it("requires steps in order", () => {
     const rows = [
       ev("a", "create", "2026-11-02T00:00:00Z"),

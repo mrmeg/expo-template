@@ -33,6 +33,8 @@ export function deps(sql: SqlClient, names: Names, config: MetricsConfig = {}, n
 }
 
 export interface EventSeed {
+  /** Defaults to a random uuid. */
+  id?: string;
   name: string;
   at: string;
   user?: string | null;
@@ -48,7 +50,7 @@ export async function insertEvents(sql: SqlClient, names: Names, events: EventSe
   for (const e of events) {
     await sql.query(
       `insert into ${names.t.events} (id, app_id, name, occurred_at, user_id, anonymous_id, session_id, platform, path, properties)
-      values (gen_random_uuid(), $1, $2, $3::timestamptz, $4, $5, $6, $7, $8, $9::text::jsonb)`,
+      values (coalesce($10::uuid, gen_random_uuid()), $1, $2, $3::timestamptz, $4, $5, $6, $7, $8, $9::text::jsonb)`,
       [
         e.app ?? APP,
         e.name,
@@ -59,6 +61,7 @@ export async function insertEvents(sql: SqlClient, names: Names, events: EventSe
         e.platform ?? "ios",
         e.path ?? null,
         e.properties ? JSON.stringify(e.properties) : null,
+        e.id ?? null,
       ],
     );
   }
@@ -140,9 +143,11 @@ export interface RevenueSeed {
   periodStart?: string | null;
   periodEnd?: string | null;
   amount?: number | null;
-  currency?: string;
+  /** Default "usd"; null records no currency. */
+  currency?: string | null;
   environment?: string;
   cancelReason?: string | null;
+  providerEventId?: string;
 }
 
 let revenueSeq = 0;
@@ -158,12 +163,12 @@ export async function insertRevenue(sql: SqlClient, names: Names, rows: RevenueS
         APP,
         r.user ?? null,
         r.type,
-        `evt_${revenueSeq}`,
+        r.providerEventId ?? `evt_${revenueSeq}`,
         r.sub ?? null,
         r.periodStart ?? null,
         r.periodEnd ?? null,
         r.amount ?? null,
-        r.currency ?? "usd",
+        r.currency === undefined ? "usd" : r.currency,
         r.cancelReason ?? null,
         r.environment ?? "production",
         r.at,

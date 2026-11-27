@@ -5,8 +5,11 @@
  * first step-1 event inside the range, and the conversion window starts there
  * (default 7 days, inclusive of its last instant). The actor is counted at step
  * k if they did steps 1..k in that order inside the window. Matching is greedy
- * (each step takes the earliest qualifying event after the previous step),
- * which finds an ordered completion whenever one exists.
+ * (each step takes the earliest qualifying event at or after the previous
+ * step's instant, never reusing an event), which finds an ordered completion
+ * whenever one exists. An event at the same instant as the previous step
+ * qualifies, so steps recorded in one batch with one timestamp count in step
+ * order, and the result never depends on row ids or arrival order.
  *
  * Per step: actors, conversion from step 1, conversion from the previous step,
  * and the median seconds from the previous step among actors who reached it.
@@ -56,22 +59,32 @@ export function computeFunnel(definition: FunnelDefinition, rows: FunnelEventRow
   let open = 0;
 
   for (const events of byActor.values()) {
-    // Input order breaks ties between equal timestamps.
     events.sort((a, b) => a.at - b.at || a.order - b.order);
     const entry = events.findIndex((e) => e.name === steps[0] && e.at >= bounds.startMs && e.at < bounds.endMs);
     if (entry === -1) continue;
+    const used = new Set<number>([entry]);
     const enteredAt = events[entry].at;
     const deadline = enteredAt + windowMs;
     let step = 1;
     let previousAt = enteredAt;
     reached[0] += 1;
-    for (let i = entry + 1; i < events.length && step < steps.length; i += 1) {
-      const event = events[i];
-      if (event.at > deadline) break;
-      if (event.name !== steps[step]) continue;
+    while (step < steps.length) {
+      // The earliest unused event of the next step at or after the previous
+      // step's instant. Only time and name decide, so two events at one
+      // instant match in step order whatever order they arrived in.
+      let match = -1;
+      for (let i = 0; i < events.length; i += 1) {
+        const event = events[i];
+        if (event.at > deadline) break;
+        if (event.at < previousAt || used.has(i) || event.name !== steps[step]) continue;
+        match = i;
+        break;
+      }
+      if (match === -1) break;
+      used.add(match);
       reached[step] += 1;
-      gaps[step].push((event.at - previousAt) / 1000);
-      previousAt = event.at;
+      gaps[step].push((events[match].at - previousAt) / 1000);
+      previousAt = events[match].at;
       step += 1;
     }
     if (step < steps.length && deadline > bounds.nowMs) open += 1;

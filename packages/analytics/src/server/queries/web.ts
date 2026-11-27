@@ -1,8 +1,8 @@
 /**
  * Web traffic fetchers. Sessions are maintained at ingest, so totals, the
  * daily series and every breakdown except pages read `sessions` only; pages
- * read `$pageview` events. All are limited to `platform = 'web'` and the
- * population filter.
+ * read the `$pageview` events of those same sessions. All are limited to web
+ * sessions (`platform = 'web'`) started in the range, with the population filter.
  */
 
 import {
@@ -15,7 +15,7 @@ import {
 import { RESERVED_EVENTS } from "../../shared/wire";
 import type { Names } from "../schema";
 import type { SqlClient } from "../sql";
-import { QueryParams, dayOf, inRange, scopedEvents, toNumber, webSessions, type QueryScope } from "./context";
+import { QueryParams, dayOf, toNumber, webSessions, type QueryScope } from "./context";
 
 interface RawTotals {
   date: string | null;
@@ -122,16 +122,25 @@ export async function fetchSessionBreakdowns(
   return rows.map((row) => ({ ...row, pageviews: toNumber(row.pageviews) }));
 }
 
-/** Top 20 paths by visitors then pageviews, from `$pageview` events on the web. */
+/**
+ * Top 20 paths by visitors then pageviews: the `$pageview` events of the same
+ * web sessions the totals count (started in the range, population filter
+ * applied), so the list reconciles with them: a session that started the
+ * night before the range is in neither, and one that started on the range's
+ * last day counts its views after midnight too. Visitors are the sessions'
+ * `anonymous_id`.
+ */
 export async function fetchTopPages(sql: SqlClient, names: Names, scope: QueryScope): Promise<BreakdownRow[]> {
   const params = new QueryParams(scope);
   const pageview = params.add(RESERVED_EVENTS.pageview);
   const limit = params.add(BREAKDOWN_LIMIT);
   const rows = await sql.query<Omit<BreakdownRow, "pageviews"> & { pageviews: string | number }>(
-    `with ${scopedEvents(names, `e.name = ${pageview}::text and e.platform = 'web' and ${inRange("e.occurred_at")}`)}
-    select path as key, count(distinct anonymous_id)::int as visitors, count(*)::bigint as pageviews
-    from scoped
-    group by path
+    `with ${webSessions(names)}
+    select e.path as key, count(distinct ws.anonymous_id)::int as visitors, count(*)::bigint as pageviews
+    from web_sessions ws
+    join ${names.t.events} e on e.app_id = $1 and e.session_id = ws.id
+    where e.name = ${pageview}::text
+    group by e.path
     order by visitors desc, pageviews desc, key asc nulls last
     limit ${limit}::int`,
     params.values,

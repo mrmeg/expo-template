@@ -19,6 +19,9 @@ import {
   computeActiveUsers,
   computeChannelFunnel,
   computeChurn,
+  computeRefundReversals,
+  currencyBreakdown,
+  summarizeCurrencies,
   computeDailyCohorts,
   computeFunnel,
   computeRetentionHeadline,
@@ -54,6 +57,7 @@ import {
   type ActiveUsers,
   type ActiveUsersComparison,
   type ChannelCohortRow,
+  type CurrencyInfo,
   type DailyCount,
   type DateRange,
   type EventPage,
@@ -80,7 +84,7 @@ import {
   fetchNewUsersByDay,
   fetchSignupsByPlatform,
 } from "./product";
-import { fetchCancellationReasons, fetchLedgerForReplay, fetchRevenueTotals } from "./revenue";
+import { fetchCancellationReasons, fetchLedgerForReplay, fetchRefundRows, fetchRevenueTotals } from "./revenue";
 import { fetchSessionBreakdowns, fetchTopPages, fetchWebTotals } from "./web";
 
 /** Optional inclusive ISO dates, as a query string carries them. */
@@ -135,6 +139,8 @@ function withRange(ctx: ReportContext, range: DateRange): QueryScope {
 }
 
 const BASE_NOTES = (ctx: ReportContext) => [NOTES.zone(ctx.timezone), NOTES.population];
+/** The default activity rule, stated where a report counts activity and the host has not named the events. */
+const ACTIVITY_NOTES = (ctx: ReportContext) => (ctx.config.activeEvents ? [] : [NOTES.activity]);
 
 // ── Product ──────────────────────────────────────────────────────────────────
 
@@ -196,7 +202,7 @@ export async function getProductReport(deps: MetricsDeps, input?: RangeInput): P
   const series = fillDaily(newUsers, ctx.range);
   return {
     range: ctx.report,
-    notes: [...BASE_NOTES(ctx), NOTES.stitching, NOTES.activeUsers],
+    notes: [...BASE_NOTES(ctx), NOTES.stitching, NOTES.activeUsers, ...ACTIVITY_NOTES(ctx)],
     active_users: activeUsers,
     new_users: { total: series.reduce((sum, day) => sum + day.count, 0), series },
     activation: activationSummary(ctx.config, cohorts),
@@ -243,7 +249,7 @@ export async function getRetentionReport(
   const retentionInput = { members, activity, range: ctx.range, today: ctx.today, days: ctx.config.retentionDays, mode: options.mode };
   return {
     range: ctx.report,
-    notes: [...BASE_NOTES(ctx), NOTES.stitching, NOTES.retentionHeadline],
+    notes: [...BASE_NOTES(ctx), NOTES.stitching, NOTES.retentionHeadline, ...ACTIVITY_NOTES(ctx)],
     days: [...ctx.config.retentionDays],
     headline: computeRetentionHeadline(retentionInput),
     cohorts: computeDailyCohorts(retentionInput),
@@ -326,37 +332,62 @@ export async function getWebReport(deps: MetricsDeps, input?: RangeInput): Promi
 
 // ── Revenue ──────────────────────────────────────────────────────────────────
 
+/** A snapshot instant, never later than the report's now. */
+function snapshotAt(ctx: ReportContext, instantMs: number): number {
+  return Math.min(instantMs, ctx.nowMs);
+}
+
+async function loadRevenueTotals(ctx: ReportContext, scope: QueryScope) {
+  const [rows, refunds] = await Promise.all([
+    fetchRevenueTotals(ctx.deps.sql, ctx.deps.names, scope),
+    fetchRefundRows(ctx.deps.sql, ctx.deps.names, scope),
+  ]);
+  return summarizeRevenueTotals(rows, computeRefundReversals(refunds));
+}
+
+function currencyNotes(info: CurrencyInfo): string[] {
+  return info.currencies.length > 1 ? [NOTES.revenueCurrency(info.currencies)] : [];
+}
+
 /**
  * MRR at the range's end, at its start and at each month end in it, with
  * movements; active trials and paid subscriptions; trial conversion; customer
  * and revenue churn; revenue totals, counts per event type, and cancellations
- * by reason.
+ * by reason. Snapshots are taken at those instants or at `now`, whichever is
+ * earlier. Money is in `currency`, or mixed when that is null.
  */
 export async function getRevenueReport(deps: MetricsDeps, input?: RangeInput): Promise<RevenueReport> {
   const ctx = prepare(deps, input);
   const { sql, names } = deps;
-  const [ledgerRows, totalsRows, reasons] = await Promise.all([
+  const [ledgerRows, summary, reasons] = await Promise.all([
     fetchLedgerForReplay(sql, names, ctx.scope),
-    fetchRevenueTotals(sql, names, ctx.scope),
+    loadRevenueTotals(ctx, ctx.scope),
     fetchCancellationReasons(sql, names, ctx.scope),
   ]);
   const ledger = indexLedger(ledgerRows);
   const startMs = zonedDayStart(ctx.range.from, ctx.timezone);
   const endMs = zonedDayEnd(ctx.range.to, ctx.timezone);
-  const start = revenueSnapshot(ledger, startMs);
-  const end = revenueSnapshot(ledger, endMs);
+  const start = revenueSnapshot(ledger, snapshotAt(ctx, startMs));
+  const end = revenueSnapshot(ledger, snapshotAt(ctx, endMs));
+  const monthEnds = monthEndsInRange(ctx.range).map((date) => ({
+    date,
+    snapshot: revenueSnapshot(ledger, snapshotAt(ctx, zonedDayEnd(date, ctx.timezone))),
+  }));
   const movements = mrrMovements(start, end);
-  const summary = summarizeRevenueTotals(totalsRows);
+  const currencies = summarizeCurrencies({
+    current: end.mrr_by_currency,
+    start: start.mrr_by_currency,
+    others: [...monthEnds.flatMap((m) => [...m.snapshot.mrr_by_currency.keys()]), ...summary.net_by_currency.keys()],
+  });
   return {
     range: ctx.report,
-    notes: [...BASE_NOTES(ctx), ...REVENUE_NOTES, ...(summary.mixed_currencies ? [NOTES.revenueCurrency] : [])],
+    notes: [...BASE_NOTES(ctx), ...REVENUE_NOTES, ...currencyNotes(currencies)],
+    ...currencies,
     mrr: {
       current_cents: end.mrr_cents,
+      by_currency: currencyBreakdown(end.mrr_by_currency),
       at_range_start_cents: start.mrr_cents,
-      month_ends: monthEndsInRange(ctx.range).map((date) => ({
-        date,
-        mrr_cents: revenueSnapshot(ledger, zonedDayEnd(date, ctx.timezone)).mrr_cents,
-      })),
+      month_ends: monthEnds.map((m) => ({ date: m.date, mrr_cents: m.snapshot.mrr_cents })),
       movements,
     },
     subscriptions: { active_paid: end.active_paid, active_trials: end.active_trials, paid_at_range_start: start.active_paid },
@@ -400,8 +431,8 @@ export async function getOverviewReport(deps: MetricsDeps, input?: RangeInput): 
     webNow,
     webBefore,
     ledgerRows,
-    totalsNow,
-    totalsBefore,
+    revenueNow,
+    revenueBefore,
   ] = await Promise.all([
     loadActiveUsers(ctx, lastDay),
     loadActiveUsers(ctx, previousLastDay),
@@ -411,16 +442,19 @@ export async function getOverviewReport(deps: MetricsDeps, input?: RangeInput): 
     fetchWebTotals(sql, names, ctx.scope, { daily: false }),
     fetchWebTotals(sql, names, withRange(ctx, previous), { daily: false }),
     fetchLedgerForReplay(sql, names, ctx.scope),
-    fetchRevenueTotals(sql, names, ctx.scope),
-    fetchRevenueTotals(sql, names, withRange(ctx, previous)),
+    loadRevenueTotals(ctx, ctx.scope),
+    loadRevenueTotals(ctx, withRange(ctx, previous)),
   ]);
 
   const ledger = indexLedger(ledgerRows);
-  // The previous period ends where this one starts.
-  const start = revenueSnapshot(ledger, zonedDayStart(ctx.range.from, ctx.timezone));
-  const end = revenueSnapshot(ledger, zonedDayEnd(ctx.range.to, ctx.timezone));
-  const revenueNow = summarizeRevenueTotals(totalsNow);
-  const revenueBefore = summarizeRevenueTotals(totalsBefore);
+  // The previous period ends where this one starts. Neither snapshot is later than now.
+  const start = revenueSnapshot(ledger, snapshotAt(ctx, zonedDayStart(ctx.range.from, ctx.timezone)));
+  const end = revenueSnapshot(ledger, snapshotAt(ctx, zonedDayEnd(ctx.range.to, ctx.timezone)));
+  const currencies = summarizeCurrencies({
+    current: end.mrr_by_currency,
+    start: start.mrr_by_currency,
+    others: [...revenueNow.net_by_currency.keys(), ...revenueBefore.net_by_currency.keys()],
+  });
   const sum = (rows: DailyCount[]) => rows.reduce((total, row) => total + row.count, 0);
   const web = computeWebTotals(webNow.totals);
   const webPrevious = computeWebTotals(webBefore.totals);
@@ -431,9 +465,11 @@ export async function getOverviewReport(deps: MetricsDeps, input?: RangeInput): 
       ...BASE_NOTES(ctx),
       NOTES.stitching,
       NOTES.retentionHeadline,
+      ...ACTIVITY_NOTES(ctx),
       NOTES.revenueGross,
       NOTES.revenueProduction,
-      ...(revenueNow.mixed_currencies || revenueBefore.mixed_currencies ? [NOTES.revenueCurrency] : []),
+      NOTES.revenueNow,
+      ...currencyNotes(currencies),
     ],
     previous_range: previous,
     active_users: {
@@ -453,7 +489,9 @@ export async function getOverviewReport(deps: MetricsDeps, input?: RangeInput): 
       pageviews: { current: web.pageviews, previous: webPrevious.pageviews },
     },
     revenue: {
+      ...currencies,
       mrr_cents: { current: end.mrr_cents, previous: start.mrr_cents },
+      mrr_by_currency: currencyBreakdown(end.mrr_by_currency),
       active_subscriptions: { current: end.active_paid, previous: start.active_paid },
       gross_cents: { current: revenueNow.totals.gross_cents, previous: revenueBefore.totals.gross_cents },
       net_cents: { current: revenueNow.totals.net_cents, previous: revenueBefore.totals.net_cents },

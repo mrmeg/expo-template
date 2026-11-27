@@ -186,7 +186,7 @@ describeDb("query API against Postgres", (ctx) => {
 
     it("exports each report and its tables as CSV", async () => {
       const expectations: [string, string, string][] = [
-        ["overview", "", "metric,current,previous,status,numerator,denominator,pending"],
+        ["overview", "", "metric,current,previous,status,numerator,denominator,pending,currency"],
         ["product", "", "date,all_dau,all_wau,all_mau,signed_in_dau,signed_in_wau,signed_in_mau,new_users"],
         ["retention", "", "cohort,label,start,end,size,week,retained,eligible,rate,status"],
         ["retention", "daily", "cohort,size,day,mode,retained,eligible,rate,status"],
@@ -199,8 +199,8 @@ describeDb("query API against Postgres", (ctx) => {
         ["web", "totals", "period,from,to,visitors,visits,pageviews,views_per_visit,bounce_rate,bounce_status,avg_visit_seconds"],
         ["web", "breakdowns", "dimension,key,visitors,pageviews"],
         ["web", "referrers", "key,visitors,pageviews"],
-        ["revenue", "", "metric,value,status,numerator,denominator"],
-        ["revenue", "mrr", "date,mrr_cents"],
+        ["revenue", "", "metric,value,status,numerator,denominator,currency"],
+        ["revenue", "mrr", "date,mrr_cents,currency"],
         ["revenue", "event_counts", "event_type,count"],
         ["revenue", "cancellations", "reason,count"],
       ];
@@ -228,7 +228,7 @@ describeDb("query API against Postgres", (ctx) => {
         "project_created,1",
       ]);
       const revenue = await csvRecords(await get(server, `/api/revenue?${RANGE}&format=csv`));
-      expect(revenue).toContain("mrr_cents,999,,,");
+      expect(revenue).toContain("mrr_cents,999,,,,USD");
     });
 
     it("exports raw events as CSV with formula cells defused", async () => {

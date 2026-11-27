@@ -31,6 +31,8 @@ describeDb("retention report", (ctx) => {
       { name: "app_open", at: "2026-10-28T09:00:00Z", user: "r5" },
       { name: "app_open", at: "2026-11-02T09:00:00Z", user: "excl" },
       { name: "app_open", at: "2026-11-03T09:00:00Z", user: "excl" },
+      // A renewal the server recorded for r2 on day 7 is not activity, so r2 is not retained at day 7.
+      { name: "renewal_recorded", at: "2026-11-09T09:00:00Z", user: "r2", platform: "server" },
       // A session end is not activity.
       { name: "$session_end", at: "2026-11-09T09:00:00Z", user: "r2" },
     ]);

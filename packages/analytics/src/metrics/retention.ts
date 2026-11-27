@@ -1,7 +1,9 @@
 /**
  * Retention, cohorted on `users.first_seen_at` (the day a user was first seen,
- * in the configured zone). Activity is any `activeEvents` event by the user,
- * directly or through a stitched anonymous device.
+ * in the configured zone). Activity is as for active users (`activeEvents`,
+ * by default every event except `$session_end` and server-platform events),
+ * by the user directly or through a stitched anonymous device. Windows are
+ * calendar days in the configured zone, computed on day strings.
  *
  * Modes, for day N after first seen (first seen is day 0):
  * - `on`: active on exactly day N.

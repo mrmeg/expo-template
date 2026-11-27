@@ -344,6 +344,7 @@ export function createTrackerCore<Events extends EventMap = EventMap>(
     }
   }
 
+  /** Built per send attempt, never cached: `sent_at` must be the time of this attempt. */
   function buildBatch(events: WireEvent[]): WireBatch {
     const context: WireContext = { platform: options.platform };
     if (options.appVersion) context.app_version = options.appVersion;
@@ -355,7 +356,7 @@ export function createTrackerCore<Events extends EventMap = EventMap>(
         report(error);
       }
     }
-    const batch: WireBatch = { context, events };
+    const batch: WireBatch = { sent_at: new Date(now()).toISOString(), context, events };
     if (acquisition && Object.keys(acquisition).length > 0) batch.acquisition = { ...acquisition };
     return batch;
   }
