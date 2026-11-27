@@ -229,6 +229,11 @@ attributed: `resolveUserId` is not called for it, because a browser still sends
 the visitor's cookies on such a request and any site could otherwise write
 events as a signed-in user. Use `"*"` only for anonymous traffic.
 
+The package has no rate limiter. `POST /e` and `GET /go/:channel` are public and
+each request can write rows, so put them behind the same rate limit as the rest
+of your public API. Body size, batch size and property size are capped by the
+package itself.
+
 Behind a proxy that does not set `x-forwarded-for` or `x-real-ip`, or with no
 proxy at all, pass `clientIp`: without an IP, every cookieless visitor with the
 same user agent hashes to the same id.
