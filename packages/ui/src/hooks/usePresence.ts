@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 
+/** Three frames at 60 Hz: covers the commit-to-first-frame delay of an exit. */
+const EXIT_MARGIN_MS = 50;
+
 export interface Presence {
   /** Render the subtree. Stays `true` for `exitMs` after `present` turns false. */
   mounted: boolean;
@@ -43,7 +46,10 @@ export function usePresence(present: boolean, exitMs: number): Presence {
       setMounted(false);
       return;
     }
-    const timer = setTimeout(() => setMounted(false), exitMs);
+    // The transition starts a frame or two after this render commits, so a
+    // timer of exactly `exitMs` unmounts before the last frames have painted
+    // (seen on Android: the fade's final step jumped 35-55% of the range).
+    const timer = setTimeout(() => setMounted(false), exitMs + EXIT_MARGIN_MS);
     return () => clearTimeout(timer);
   }, [present, exitMs]);
 

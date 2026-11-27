@@ -355,7 +355,11 @@ function AccordionContent({
       : {
         transitionProperty: "height",
         transitionDuration: `${ms}ms`,
-        transitionTimingFunction: shown ? "ease-out" : "ease-in",
+        // One curve both ways: in a single-type accordion one item closes
+        // while another opens, and with ease-out against ease-in the two
+        // heights do not sum to a constant, so the rows below bulged by ~7 pt
+        // mid-swap.
+        transitionTimingFunction: "ease-in-out",
       }),
   };
 
