@@ -107,10 +107,6 @@ export function useCollapse(open: boolean, ms: number): Collapse {
   const atRest = stage === "open";
   const target =
     stage === "opening" || stage === "pinned" ? (measured ?? 0) : 0;
-  // The transition is declared only on the two moving stages, so pinning a
-  // height (auto to a number, the same pixels) can never animate.
-  const moving = stage === "opening" || stage === "closing";
-
   return {
     mounted: stage !== "closed",
     clipStyle: atRest
@@ -118,15 +114,18 @@ export function useCollapse(open: boolean, ms: number): Collapse {
       : {
         overflow: "hidden",
         height: target,
-        ...(moving
-          ? {
-            transitionProperty: "height",
-            transitionDuration: `${ms}ms`,
-            // One curve both ways: when one item closes as another opens,
-            // two different curves make the rows below bulge mid-swap.
-            transitionTimingFunction: "ease-in-out",
-          }
-          : null),
+        // Declared on every non-resting stage, one render before the height
+        // moves. Reanimated ignores a transition whose settings arrive in the
+        // same update as the value change (a browser honours it): declaring it
+        // only on `opening` / `closing` made every open and close snap on iOS
+        // and Android. The same rule is what keeps the pin silent: `open` to
+        // `pinned` adds the settings and the height together, so it cannot
+        // animate, and on web `auto` to a number is not animatable anyway.
+        transitionProperty: "height",
+        transitionDuration: `${ms}ms`,
+        // One curve both ways: when one item closes as another opens, two
+        // different curves make the rows below bulge mid-swap.
+        transitionTimingFunction: "ease-in-out",
       },
     contentStyle: atRest ? null : { position: "absolute", top: 0, left: 0, right: 0 },
     onContentLayout: (event) => setMeasured(event.nativeEvent.layout.height),
