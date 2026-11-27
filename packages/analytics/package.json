@@ -1,0 +1,92 @@
+{
+  "name": "@mrmeg/expo-analytics",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Self-hosted, first-party analytics for Expo and web apps: event capture, installable Postgres tables, product, acquisition, web and revenue metrics, and a built-in dashboard.",
+  "keywords": [
+    "expo",
+    "react-native",
+    "analytics",
+    "postgres",
+    "self-hosted",
+    "retention",
+    "funnels",
+    "metrics"
+  ],
+  "author": "Matt Megenhardt",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrmeg/expo-template.git",
+    "directory": "packages/analytics"
+  },
+  "bugs": {
+    "url": "https://github.com/mrmeg/expo-template/issues"
+  },
+  "homepage": "https://github.com/mrmeg/expo-template/tree/main/packages/analytics",
+  "type": "module",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "expo-analytics": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md",
+    "CHANGELOG.md",
+    "LLM_USAGE.md",
+    "llms.txt",
+    "llms-full.md"
+  ],
+  "exports": {
+    ".": {
+      "@mrmeg/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./web": {
+      "@mrmeg/source": "./src/web/index.ts",
+      "types": "./dist/web/index.d.ts",
+      "default": "./dist/web/index.js"
+    },
+    "./native": {
+      "@mrmeg/source": "./src/native/index.ts",
+      "types": "./dist/native/index.d.ts",
+      "default": "./dist/native/index.js"
+    },
+    "./metrics": {
+      "@mrmeg/source": "./src/metrics/index.ts",
+      "types": "./dist/metrics/index.d.ts",
+      "default": "./dist/metrics/index.js"
+    },
+    "./server": {
+      "@mrmeg/source": "./src/server/index.ts",
+      "types": "./dist/server/index.d.ts",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "jest --config ../../jest.config.js packages/analytics/src --runInBand --watchman=false",
+    "test:db": "REQUIRE_TEST_DB=1 jest --config ../../jest.config.js packages/analytics/src --runInBand --watchman=false --testPathPatterns '\\.db\\.test\\.ts$'",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs analytics",
+    "publish:dry-run": "bun pm pack --dry-run"
+  },
+  "peerDependencies": {
+    "react-native": ">=0.83.0 <0.89.0 || >=0.88.0-0 <0.89.0"
+  },
+  "peerDependenciesMeta": {
+    "react-native": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "postgres": "^3.4.9",
+    "typescript": "~6.0.3"
+  }
+}
