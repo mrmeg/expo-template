@@ -5,7 +5,7 @@
  * caller in this repo (the release script, the publish workflow, `verify`, the
  * docs) uses the runner. The `ui:*`/`media:*`/`purchases:*`/`lint:*` root
  * aliases stay only as shims over the same runner, because automation outside
- * the repo still calls them (packages added later, like `metro`, have none).
+ * the repo still calls them (packages added later, like `metro` and `analytics`, have none).
  * These tests pin the resolved command for every
  * (package, task) pair — if the table drifts, a publish silently runs the wrong
  * thing — pin each shim to its runner call, and fail when a repo caller uses a
@@ -41,7 +41,7 @@ function resolve(args: string[]): { status: number; stdout: string; stderr: stri
 
 const print = (args: string[]) => resolve(["--print", ...args]).stdout.trim();
 
-const PACKAGE_SLUGS = ["ui", "media", "purchases", "lint", "metro"];
+const PACKAGE_SLUGS = ["ui", "media", "purchases", "lint", "metro", "analytics"];
 /** The packages that predate `pkg` and keep root aliases; later packages have none. */
 const SHIM_PACKAGES = ["ui", "media", "purchases", "lint"];
 const TASK_NAMES = ["typecheck", "test", "build", "pack", "consumer-smoke", "release"];
@@ -92,6 +92,12 @@ const EXPECTED: Record<string, string> = {
   "metro pack": "bun run --cwd packages/metro publish:dry-run",
   "metro consumer-smoke": "node scripts/check-package-consumer.mjs metro",
   "metro release": "node scripts/release-package.mjs metro",
+  "analytics typecheck": "bun run --cwd packages/analytics typecheck",
+  "analytics test": "bun run --cwd packages/analytics test",
+  "analytics build": "bun run --cwd packages/analytics build",
+  "analytics pack": "bun run --cwd packages/analytics publish:dry-run",
+  "analytics consumer-smoke": "node scripts/check-package-consumer.mjs analytics",
+  "analytics release": "node scripts/release-package.mjs analytics",
 };
 
 describe("run-package-script resolves every package task", () => {
@@ -136,7 +142,7 @@ describe("run-package-script argument validation", () => {
 
     expect(result.status).toBe(1);
     expect(`${result.stdout}${result.stderr}`).toMatch(/unknown package "nope"/i);
-    expect(`${result.stdout}${result.stderr}`).toContain("lint, media, metro, purchases, ui");
+    expect(`${result.stdout}${result.stderr}`).toContain("analytics, lint, media, metro, purchases, ui");
   });
 
   it("rejects an unknown task and names the valid ones", () => {

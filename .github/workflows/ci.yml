@@ -21,6 +21,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # Postgres for the `@mrmeg/expo-analytics` database suites (`*.db.test.ts`),
+    # which skip without ANALYTICS_TEST_DATABASE_URL. Each suite works in its own
+    # throwaway schema; the harness refuses a non-loopback host or a database
+    # name without "test".
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: analytics_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d analytics_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v7
 
@@ -36,7 +54,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # REQUIRE_TEST_DB=1 turns a missing database into a failure instead of a
+      # skip. Only the analytics harness reads it, so it is safe for the whole run.
       - name: Verify
+        env:
+          ANALYTICS_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/analytics_test
+          REQUIRE_TEST_DB: "1"
         run: bun run verify
 
   bundle-size:

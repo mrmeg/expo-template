@@ -80,7 +80,7 @@ async function checkPackage(key) {
     }
   }
 
-  if (key === "media" || key === "purchases") {
+  if (key === "media" || key === "purchases" || key === "analytics") {
     for (const name of Object.keys(manifest.peerDependencies ?? {})) {
       assert(
         manifest.peerDependenciesMeta?.[name]?.optional === true,
@@ -116,3 +116,4 @@ async function checkPackage(key) {
 await checkPackage("media");
 await checkPackage("purchases");
 await checkPackage("ui");
+await checkPackage("analytics");

@@ -1,6 +1,7 @@
 /**
- * `@mrmeg/expo-analytics/server`: ingest endpoint, installable tables, and the
- * host-side API (`track`, `identify`, revenue, tracked links, pruning).
+ * `@mrmeg/expo-analytics/server`: ingest endpoint, installable tables, the
+ * host-side API (`track`, `identify`, revenue, tracked links, pruning), the
+ * admin query API and dashboard, and `server.metrics` for a host's own screens.
  */
 export { createAnalyticsServer, ROUTES, toNodeHandler } from "./server";
 export type {
@@ -70,3 +71,7 @@ export {
   listEvents,
 } from "./queries";
 export type { EventCursor, MetricsDeps, QueryScope, RangeInput } from "./queries";
+
+export type { AnalyticsMetrics, EventsQuery, MetaResponse } from "./queryApi";
+export { CSV_TABLES, eventsTable, reportTable } from "./reportCsv";
+export type { CsvTable, ReportName, ReportShapes } from "./reportCsv";

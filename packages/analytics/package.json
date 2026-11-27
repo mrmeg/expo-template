@@ -73,8 +73,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config ../../jest.config.js packages/analytics/src --runInBand --watchman=false",
-    "test:db": "REQUIRE_TEST_DB=1 jest --config ../../jest.config.js packages/analytics/src --runInBand --watchman=false --testPathPatterns '\\.db\\.test\\.ts$'",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs analytics",
+    "test:db": "REQUIRE_TEST_DB=1 jest --config ../../jest.config.js --runInBand --watchman=false --testPathPatterns 'packages/analytics/src/.*\\.db\\.test\\.ts$'",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && node ../../scripts/fix-package-esm.mjs analytics && chmod +x dist/cli/index.js",
     "publish:dry-run": "bun pm pack --dry-run"
   },
   "peerDependencies": {
@@ -86,6 +86,8 @@
     }
   },
   "devDependencies": {
+    "@types/jsdom": "^21.1.7",
+    "jsdom": "^26.1.0",
     "postgres": "^3.4.9",
     "typescript": "~6.0.3"
   }

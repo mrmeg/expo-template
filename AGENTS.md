@@ -8,7 +8,7 @@ unless the user asks for a plan.
 - Read this file first, then load only what the task needs.
 - Validate with fresh command output; never claim tests, builds, UI checks, or CI passed from memory.
 - Keep durable template guidance in `docs/` or the relevant package README.
-- Reusable UI goes in `packages/ui`; reusable media contracts and processing in `packages/media`; reusable RevenueCat purchases, entitlement state, and webhook helpers in `packages/purchases`.
+- Reusable UI goes in `packages/ui`; reusable media contracts and processing in `packages/media`; reusable RevenueCat purchases, entitlement state, and webhook helpers in `packages/purchases`; reusable event tracking, analytics tables, metrics, and the analytics dashboard in `packages/analytics`.
 - App integrations stay under `client/`, `server/`, `app/api/`, or `shared/`.
 
 ### Docs
@@ -29,6 +29,7 @@ unless the user asks for a plan.
 | UI Package | [`packages/ui/README.md`](packages/ui/README.md) | `@mrmeg/expo-ui` install, setup, components, theming, publishing |
 | Media Package | [`packages/media/README.md`](packages/media/README.md) | `@mrmeg/expo-media` install, setup, processing, server handlers |
 | Purchases Package | [`packages/purchases/README.md`](packages/purchases/README.md) | `@mrmeg/expo-purchases` RevenueCat client, entitlement store, gating, pure webhook/ledger helpers, setup and store-review checklists |
+| Analytics Package | [`packages/analytics/README.md`](packages/analytics/README.md) | `@mrmeg/expo-analytics` web and native trackers, ingest server, installable Postgres tables, metric definitions, privacy, dashboard and query API, CLI |
 | Lint Package | [`packages/lint/README.md`](packages/lint/README.md) | `@mrmeg/eslint-plugin-expo-ui` rules, CLI (`bun lint:ui`), settings, style contracts, adoption in other projects, troubleshooting, release |
 | Metro Package | [`packages/metro/README.md`](packages/metro/README.md) | `@mrmeg/expo-metro` `withBundleOptimizations`: tree-shaking env flags, zod locale stub, composing with other resolver wrappers, opting out |
 | Agent Evals | [`evals/agents/README.md`](evals/agents/README.md) | Does package guidance help agents? Task set, guidance variants, deterministic scoring, isolation probe, spend gate; `node scripts/run-agent-evals.mjs --dry-run`; real runs cost money |
@@ -44,6 +45,7 @@ unless the user asks for a plan.
 | UI | `@mrmeg/expo-ui` workspace package | RN primitives, design tokens, theme state, reusable components; default Refined look (Allo, neutral greys), `applyLook(classicLook)` for the old one |
 | Media | `@mrmeg/expo-media` workspace package | Client hooks, processing helpers, S3/R2 server handlers |
 | Purchases | `@mrmeg/expo-purchases` workspace package | RevenueCat client, entitlement store, paywall gating, pure webhook/ledger helpers; optional peers `react-native-purchases` / `react-native-purchases-ui`, not used by the template app |
+| Analytics | `@mrmeg/expo-analytics` workspace package | Self-hosted first-party analytics: web/native trackers, ingest and reports on the host's own Postgres (`fromPostgresJs` / `fromPg`, no bundled driver), admin-only dashboard; optional peer `react-native`; database suites run when `ANALYTICS_TEST_DATABASE_URL` is set (CI sets it); not used by the template app; publishable but not yet on npm (first release pending) |
 | Lint | `@mrmeg/eslint-plugin-expo-ui` workspace package | Design-system ESLint rules; `bun lint:ui` for `app`, `client`, `shared`; publishable but not yet on npm (first release pending); reads `packages/ui/src` here and `dist/design-system.json` in consumers |
 | Metro | `@mrmeg/expo-metro` workspace package | Plain CommonJS, no dependencies, Node only (loaded by `metro.config.js`, never bundled): `withBundleOptimizations` sets the tree-shaking env flags and stubs zod's locale barrel; publishable but not yet on npm (first release pending) |
 | State/data | Zustand 5, TanStack React Query 5 | Persisted client stores; query defaults in app providers |
@@ -55,7 +57,7 @@ unless the user asks for a plan.
 
 ### Project Notes
 
-- Use the exact package scripts in `package.json`; do not substitute generic Expo or npm commands when a local Bun script exists. Workspace package tasks run as `bun run pkg <ui|media|purchases|lint|metro> <typecheck|test|build|pack|consumer-smoke|release>`; releases and CI publishing are in [`README.md#publishing-packages`](README.md#publishing-packages).
+- Use the exact package scripts in `package.json`; do not substitute generic Expo or npm commands when a local Bun script exists. Workspace package tasks run as `bun run pkg <ui|media|purchases|lint|metro|analytics> <typecheck|test|build|pack|consumer-smoke|release>`; releases and CI publishing are in [`README.md#publishing-packages`](README.md#publishing-packages).
 - Bun is pinned in `.bun-version`, the one place every CI job reads it from.
 - Quote route paths with parentheses or brackets in shell commands, for example `'app/(main)/(tabs)/index.tsx'`.
 - Design-system rules — raw colors, off-scale spacing, appearance overrides on `@mrmeg/expo-ui` components, raw primitives the design system already wraps, icon-library imports (Lucide, vector icons) — are enforced by `@mrmeg/eslint-plugin-expo-ui` ([`packages/lint/README.md`](packages/lint/README.md)) through `bun run lint`, which covers `app/` only. `bun lint:ui` lints `app`, `client`, and `shared` for design-system violations alone, `--changed` narrows it to the files you touched, and `--doctor [file]` checks the plugin, the config, and the design system are wired. Read the message and use the token, variant, or component it names; never disable one of these rules without a `-- reason` on the disable comment.

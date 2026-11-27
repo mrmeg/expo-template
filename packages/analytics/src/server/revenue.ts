@@ -1,7 +1,10 @@
 /**
  * Revenue ledger writes. The input is camelCase and loose enough that a
- * `@mrmeg/expo-purchases` `LedgerRow` is assignable to it as is, without this
+ * `@mrmeg/expo-purchases` `LedgerRow` is assignable to it, without this
  * package depending on that one; any other provider maps onto the same shape.
+ * A `LedgerRow` carries no paid period, though, and a paid row without
+ * `periodEnd` counts as a one-time purchase: add `periodStart` and
+ * `periodEnd` from the webhook event or the subscription never reaches MRR.
  * Idempotent on `(app_id, provider, provider_event_id, event_type)`, so a
  * redelivered webhook writes nothing.
  */

@@ -48,11 +48,12 @@ stops matching `bun run verify --list`. Rerun any gate on its own as
 | 6 | `pkg purchases typecheck` | `@mrmeg/expo-purchases` against its own tsconfig |
 | 7 | `pkg lint typecheck` | `@mrmeg/eslint-plugin-expo-ui` against its own tsconfig |
 | 8 | `pkg metro typecheck` | `@mrmeg/expo-metro` against its own tsconfig |
-| 9 | `lint` | `expo lint` over `app/` (run `bun lint:ui` for `client/` and `shared/`) |
-| 10 | `check:features` | Feature-folder isolation |
-| 11 | `gen --check` | Every generated artifact is fresh: icon builtins and Lucide snapshot, app and tab icon modules, template and block registries, `@mrmeg/expo-ui` component docs (`LLM_USAGE.md` index, `docs/components/index.md`, `llms-full.md`), `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
-| 12 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
-| 13 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes |
+| 9 | `pkg analytics typecheck` | `@mrmeg/expo-analytics` against its own tsconfig |
+| 10 | `lint` | `expo lint` over `app/` (run `bun lint:ui` for `client/` and `shared/`) |
+| 11 | `check:features` | Feature-folder isolation |
+| 12 | `gen --check` | Every generated artifact is fresh: icon builtins and Lucide snapshot, app and tab icon modules, template and block registries, `@mrmeg/expo-ui` component docs (`LLM_USAGE.md` index, `docs/components/index.md`, `llms-full.md`), `llms-full.txt` / `llms-examples.txt`. Fix with `bun run gen` |
+| 13 | `docs:versions:check` | `README.md`'s version claims match `package.json` |
+| 14 | `test:ci` | `jest --ci --forceExit`, no coverage (`bun run test:coverage` when you want the report). `--forceExit` because some suites leave timers that hold a single-worker run open for minutes. The `@mrmeg/expo-analytics` database suites (`*.db.test.ts`) skip unless `ANALYTICS_TEST_DATABASE_URL` is set; CI sets it with `REQUIRE_TEST_DB=1`, so there they fail instead of skipping |
 <!-- verify-gates:end -->
 
 `bun run verify --bail` stops at the first failure; `--max-workers <n>` caps
@@ -61,7 +62,7 @@ jest's workers on a shared machine.
 ## Packages
 
 Package tasks run through one runner, for every package in
-`scripts/lib/workspacePackages.mjs` (`ui`, `media`, `purchases`, `lint`, `metro`):
+`scripts/lib/workspacePackages.mjs` (`ui`, `media`, `purchases`, `lint`, `metro`, `analytics`):
 
 ```bash
 bun run pkg <package> typecheck|test|build|pack|consumer-smoke|release
@@ -69,7 +70,8 @@ bun run pkg ui release -- --patch            # bump + every gate, no publish
 ```
 
 The older `<package>:<task>` root scripts remain as shims over the same runner
-for automation outside this repo; docs and scripts in the repo use `pkg`.
+for automation outside this repo (packages added since, `metro` and
+`analytics`, have none); docs and scripts in the repo use `pkg`.
 
 `release` bumps the version, runs the package's gates, packs one tarball, and
 runs the consumer smoke against it; `--publish` then publishes that tarball.
@@ -89,7 +91,7 @@ bun run test:coverage                   # the same run with a coverage report
 
 - Tests live in `__tests__/` directories next to source, or as `*.test.ts(x)` siblings.
 - `bun run verify` runs the suite as its last gate.
-- Coverage (`bun run test:coverage`) spans `client/**`, `app/api/**`, `server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, and `packages/purchases/src/**`, so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code.
+- Coverage (`bun run test:coverage`) spans `client/**`, `app/api/**`, `server/**`, `shared/**`, `packages/ui/src/**`, `packages/media/src/**`, `packages/purchases/src/**`, and `packages/analytics/src/**`, so route-level seams (CORS, rate limiting, auth bootstrap, media storage, billing) stay observable — not just UI code.
 - Need a stable theme without mounting providers? `import "@/test/mockTheme";` at the top of the file mocks `useTheme` with a fixed light-scheme palette.
 - Keep coverage on reusable surfaces: design-system primitives (Card, Badge, EmptyState, Skeleton, RadioGroup, …), the form primitive trio (`FormProvider` + `FormTextInput` + `FormCheckbox`), and screen templates (Welcome, Error, List, …). Avoid snapshot-only tests — assert visible behaviour or interaction outcomes.
 

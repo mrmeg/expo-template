@@ -3,6 +3,7 @@
  * context the database modules take. Kept as interfaces so later options
  * (metrics, dashboard) extend them without a breaking change.
  */
+import type { MetricsConfig } from "../metrics";
 import type { LinkConfig } from "./links";
 import type { Names } from "./schema";
 import type { SqlClient } from "./sql";
@@ -26,6 +27,12 @@ export interface AnalyticsServerConfig {
   /** Default: the cf-ipcountry header. */
   country?: (request: Request) => string | null;
   links?: LinkConfig;
+  /**
+   * How the reports, the query API and the dashboard cut figures: time zone,
+   * activation event, funnels, retention days. Validated when the server is
+   * created, so a mistake fails at boot instead of on every report.
+   */
+  metrics?: MetricsConfig;
   now?: () => Date;
   onError?: (error: unknown, where: string) => void;
 }

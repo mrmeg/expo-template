@@ -98,6 +98,7 @@ describe("the gate list", () => {
       "pkg purchases typecheck",
       "pkg lint typecheck",
       "pkg metro typecheck",
+      "pkg analytics typecheck",
       "lint",
       "check:features",
       "gen --check",

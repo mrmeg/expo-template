@@ -103,6 +103,8 @@
         "expo-analytics": "./dist/cli/index.js",
       },
       "devDependencies": {
+        "@types/jsdom": "^21.1.7",
+        "jsdom": "^26.1.0",
         "postgres": "^3.4.9",
         "typescript": "~6.0.3",
       },

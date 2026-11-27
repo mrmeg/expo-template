@@ -6,6 +6,7 @@ name: Package Compatibility
 on:
   pull_request:
     paths:
+      - "packages/analytics/**"
       - "packages/media/**"
       - "packages/purchases/**"
       - "packages/ui/**"
@@ -20,6 +21,7 @@ on:
   push:
     branches: [main, dev]
     paths:
+      - "packages/analytics/**"
       - "packages/media/**"
       - "packages/purchases/**"
       - "packages/ui/**"
@@ -42,6 +44,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - package: analytics
+            sdk: 57
+          - package: analytics
+            sdk: 58
           - package: media
             sdk: 55
           - package: media

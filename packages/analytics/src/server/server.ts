@@ -3,15 +3,16 @@
  * `toNodeHandler` for Express) and calls (`install`, `track`, `identify`,
  * `recordRevenueEvents`, `prune`).
  *
- * Every route is a row in `ROUTES`. Later features (the query API, the
- * dashboard) add rows there with `access: "admin"`, and dispatch keeps them
- * closed unless `config.isAdmin` opens them.
+ * Every route is a row in `ROUTES`. The query API and the dashboard are rows
+ * with `access: "admin"`, and dispatch keeps them closed (404) unless
+ * `config.isAdmin` opens them.
  */
 import { randomUUID } from "node:crypto";
 
 import { type IngestResponse, type WireAcquisition } from "../shared/wire";
 import { sanitizeAcquisition } from "./acquisition";
 import type { AnalyticsServerConfig } from "./config";
+import { DASHBOARD_ROUTES } from "./dashboard/routes";
 import {
   checkOrigin,
   declaresTooLarge,
@@ -33,6 +34,7 @@ import { detectLinkPlatform, linkDestination, recordLinkClick, resolveLinkRedire
 import { recordRevenueEvents, type RevenueEventInput } from "./revenue";
 import { resolveNames } from "./schema";
 import { upsertUser, validPlatform, validUserId } from "./users";
+import { API_ROUTES, createMetrics, validateMetricsConfig, type AnalyticsMetrics } from "./queryApi";
 import { parseUserAgent } from "./visitor";
 import { cleanText, hostOf, isPlainObject, toDate } from "./util";
 
@@ -116,6 +118,8 @@ export const ROUTES: readonly Route[] = [
   },
   { method: "GET", pattern: "/go/:channel", access: "public", enabled: hasLinks, handler: followLink },
   { method: "HEAD", pattern: "/go/:channel", access: "public", enabled: hasLinks, handler: followLink },
+  ...API_ROUTES,
+  ...DASHBOARD_ROUTES,
 ];
 
 /** A trusted, server-side event. */
@@ -169,6 +173,8 @@ export interface AnalyticsServer {
   recordLinkClick(input: LinkClickInput): Promise<string>;
   /** Deletes old events and sessions only; users and revenue are kept. */
   prune(options: PruneOptions): Promise<PruneResult>;
+  /** The reports behind the query API and the dashboard, for a host's own admin screen. */
+  readonly metrics: AnalyticsMetrics;
 }
 
 const APP_ID_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
@@ -188,6 +194,7 @@ export function createAnalyticsServer(config: AnalyticsServerConfig): AnalyticsS
   if (typeof config.appId !== "string" || !APP_ID_PATTERN.test(config.appId)) {
     throw new Error(`expo-analytics: invalid appId "${String(config.appId)}" (1-64 letters, digits, . _ : -)`);
   }
+  validateMetricsConfig(config.metrics);
   const placement = { schema: config.schema, prefix: config.prefix };
   const names = resolveNames(placement);
   const basePath = normalizeBasePath(config.basePath);
@@ -316,6 +323,7 @@ export function createAnalyticsServer(config: AnalyticsServerConfig): AnalyticsS
     recordRevenueEvents: (rows) => recordRevenueEvents(ctx, rows),
     recordLinkClick: (input) => recordLinkClick(ctx, input),
     prune,
+    metrics: createMetrics(ctx),
   };
 }
 

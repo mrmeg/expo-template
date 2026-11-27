@@ -42,7 +42,7 @@ export const DEFAULT_SOCIAL_CHANNELS: readonly string[] = [
 
 /**
  * Query parameter carrying the click id on the web destination. The web
- * tracker reads it into `acquisition.link_click_id` with `click_id_kind: "link"`.
+ * tracker reads it into `acquisition.link_click_id`.
  */
 export { LINK_CLICK_PARAM };
 
